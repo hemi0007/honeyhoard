@@ -23,5 +23,12 @@
 <body>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
     <script src="honeyhorde.js"></script>
+    <div id="gameOverOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+      <div style="background:#fff; padding:40px 60px; border-radius:20px; text-align:center; box-shadow:0 0 24px #000a;">
+        <h1 style="color:#a0522d;">Game Over</h1>
+        <p id="finalScore" style="font-size:2em; color:#222; margin:20px 0;"></p>
+        <button onclick="restartGame()" style="font-size:1.5em; padding:10px 30px; border-radius:10px; border:none; background:#D68C1F; color:#fff; cursor:pointer;">Play Again</button>
+      </div>
+    </div>
 </body>
 </html>

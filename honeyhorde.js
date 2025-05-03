@@ -12,6 +12,8 @@ let bgImg; // Background image
 let fallInterval = 45; // Start slower
 let minFallInterval = 8; // Minimum speed
 let lastFall = 0; // Last frame when the piece fell
+let gameOver = false;
+let softDrop = false;
 
 // Predefined shapes (polyhexes) as arrays of [q,r] offsets
 const shapes = [
@@ -157,27 +159,45 @@ function rotatePiece() {
 
 // Place the piece on the grid and check for game over
 function placePiece() {
-  let gameOver = false;
+  let gameOverFlag = false;
   for (let offset of piece.shape) {
     let absHex = piece.hexPos.add(offset);
     filled.add(absHex.toString());
     if (absHex.r < -R) {
-      gameOver = true;
+      gameOverFlag = true;
     }
   }
   removeLines();
   generatePiece();
   // Speed up the fall after each piece
   fallInterval = max(minFallInterval, fallInterval - 1);
-  if (gameOver || !canPlace(piece.hexPos, piece.shape)) {
-    console.log("Game Over");
+  if (gameOverFlag || !canPlace(piece.hexPos, piece.shape)) {
     noLoop();
-    push();
-    fill(255,0,0);
-    textSize(48);
-    textAlign(CENTER, CENTER);
-    text('Game Over', width/2, height/2);
-    pop();
+    showGameOver();
+  }
+}
+
+function showGameOver() {
+  gameOver = true;
+  if (typeof document !== 'undefined') {
+    const scoreElem = document.getElementById('finalScore');
+    if (scoreElem) scoreElem.textContent = `Your Score: ${score}`;
+    const overlay = document.getElementById('gameOverOverlay');
+    if (overlay) overlay.style.display = 'flex';
+  }
+}
+
+function restartGame() {
+  filled = new Set();
+  score = 0;
+  fallInterval = 45;
+  lastFall = 0;
+  gameOver = false;
+  loop();
+  generatePiece();
+  if (typeof document !== 'undefined') {
+    const overlay = document.getElementById('gameOverOverlay');
+    if (overlay) overlay.style.display = 'none';
   }
 }
 
@@ -298,8 +318,9 @@ function draw() {
     fill(255);
     text(`Score: ${score}`, 10, 30);
 
-    // Automatic falling
-    if (frameCount - lastFall >= fallInterval) {
+    // Automatic falling (soft drop if down arrow held)
+    let currentInterval = softDrop ? 6 : fallInterval;
+    if (frameCount - lastFall >= currentInterval) {
       movePieceDown();
       lastFall = frameCount;
     }
@@ -322,6 +343,7 @@ function draw() {
 
 // Handle key presses for piece control
 function keyPressed() {
+  if (gameOver) return;
   if (keyCode === LEFT_ARROW) {
     movePieceLeft();
   } else if (keyCode === RIGHT_ARROW) {
@@ -329,6 +351,12 @@ function keyPressed() {
   } else if (keyCode === UP_ARROW || key === ' ') {
     rotatePiece();
   } else if (keyCode === DOWN_ARROW) {
-    movePieceDown();
+    softDrop = true;
+  }
+}
+
+function keyReleased() {
+  if (keyCode === DOWN_ARROW) {
+    softDrop = false;
   }
 }
