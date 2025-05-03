@@ -1,6 +1,6 @@
 // Global variables
 let R = 5; // Hexagon radius (distance from center to corner)
-let size = 20; // Hexagon radius in pixels
+let size = 30; // Hexagon radius in pixels (increased for wider honeycomb)
 let origin = null; // Will be set in setup
 let filled = new Set(); // Stores filled hex positions as "q,r" strings
 let score = 0;
@@ -8,6 +8,8 @@ let piece; // Current draggable piece
 let dragging = false;
 let bg; // Graphics buffer for background
 let lastError = null; // Store last error for display
+let honeyImg;
+let bgImg; // New variable for background image
 
 // Predefined shapes (polyhexes) as arrays of [q,r] offsets
 const shapes = [
@@ -40,8 +42,8 @@ class Hex {
 
 // Convert hex coordinates to pixel coordinates (pointy-top orientation)
 function hexToPixel(hex) {
-  const x = size * Math.sqrt(3) * (hex.q + hex.r / 2);
-  const y = size * (3 / 2) * hex.r;
+  const x = size * Math.sqrt(3) * (hex.q + hex.r / 2); // Horizontal spacing
+  const y = size * (3 / 2) * hex.r; // Vertical spacing
   return createVector(origin.x + x, origin.y + y);
 }
 
@@ -70,7 +72,6 @@ function roundHex(frac) {
 
 // Check if a hex is within grid bounds
 function isWithinBounds(hex) {
-  // Hex is within hexagonal boundary if max(|q|, |r|, |s|) <= R
   let s = -hex.q - hex.r;
   return Math.max(Math.abs(hex.q), Math.abs(hex.r), Math.abs(s)) <= R;
 }
@@ -96,7 +97,7 @@ function generatePiece() {
     piece = {
       shape: shape,
       pixelOffsets: pixelOffsets,
-      pos: createVector(width / 2, height - 100) // Starting position below grid
+      pos: createVector(width / 2, height - 40) // Further down from the board
     };
     lastError = null;
   } catch (err) {
@@ -138,7 +139,7 @@ function removeLines() {
       for (let h of toRemove) {
         filled.delete(h);
       }
-      score += toRemove.size * 10; // 10 points per hex removed
+      score += toRemove.size * 10;
       removed = true;
     } else {
       removed = false;
@@ -153,31 +154,29 @@ function setup() {
   canvas.style('margin', 'auto');
   origin = createVector(width / 2, height / 2); // Center the grid
 
-  // Generate tree bark background with noise
+  // Initialize graphics buffer and draw the background image
   bg = createGraphics(width, height);
-  bg.loadPixels();
-  for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) {
-      let n = noise(x * 0.01, y * 0.01);
-      let c = color(139 + n * 50, 69 + n * 50, 19 + n * 50); // Brown shades
-      bg.set(x, y, c);
-    }
-  }
-  bg.updatePixels();
+  bg.image(bgImg, 0, 0, width, height); // Draw image to buffer, scaled to canvas size
 
   generatePiece();
+}
+
+function preload() {
+  honeyImg = loadImage('img/honey.png');
+  bgImg = loadImage('img/tree.png'); // Load background image
 }
 
 // Draw function: render the game
 function draw() {
   try {
     background(0);
-    // if (treeBgImg) {
-    //   image(treeBgImg, 0, 0, width, height);
-    // }
-    image(bg, 0, 0); // Draw tree bark background
+    image(bg, 0, 0); // Draw background from buffer
 
-    // Draw hexagonal grid (true hexagon)
+    // Image size to cover hex without gaps
+    const imgW = size * Math.sqrt(3) * 1.15; // Slightly larger to fill
+    const imgH = size * 2 * 1.15;
+
+    // Draw hexagonal grid
     for (let q = -R; q <= R; q++) {
       for (let r = -R; r <= R; r++) {
         let s = -q - r;
@@ -185,9 +184,41 @@ function draw() {
         let hex = new Hex(q, r);
         let p = hexToPixel(hex);
         if (filled.has(hex.toString())) {
-          fill(255, 204, 0); // Yellow for honey-filled hexes
+          if (honeyImg) {
+            imageMode(CENTER);
+            image(honeyImg, p.x, p.y, imgW, imgH);
+            imageMode(CORNER);
+          } else {
+            fill(255, 204, 0);
+            noStroke();
+            drawHexagon(p.x, p.y, size);
+          }
         } else {
-          fill(200); // Gray for empty hexes
+          fill(200);
+          noStroke();
+          drawHexagon(p.x, p.y, size);
+        }
+      }
+    }
+
+    // Draw placement highlight when dragging
+    if (dragging) {
+      let targetHex = pixelToHex(piece.pos);
+      let canPlace = true;
+      for (let offset of piece.shape) {
+        let absHex = targetHex.add(offset);
+        if (!isWithinBounds(absHex) || filled.has(absHex.toString())) {
+          canPlace = false;
+          break;
+        }
+      }
+      for (let offset of piece.shape) {
+        let absHex = targetHex.add(offset);
+        let p = hexToPixel(absHex);
+        if (canPlace) {
+          fill(0, 255, 0, 100); // Green for valid placement
+        } else {
+          fill(255, 0, 0, 100); // Red for invalid placement
         }
         noStroke();
         drawHexagon(p.x, p.y, size);
@@ -198,9 +229,15 @@ function draw() {
     for (let i = 0; i < piece.shape.length; i++) {
       let offset = piece.pixelOffsets[i];
       let drawPos = p5.Vector.add(piece.pos, offset);
-      fill(255, 204, 0); // Yellow for honey
-      noStroke();
-      drawHexagon(drawPos.x, drawPos.y, size);
+      if (honeyImg) {
+        imageMode(CENTER);
+        image(honeyImg, drawPos.x, drawPos.y, imgW, imgH);
+        imageMode(CORNER);
+      } else {
+        fill(255, 204, 0);
+        noStroke();
+        drawHexagon(drawPos.x, p.y, size);
+      }
     }
 
     // Draw score
@@ -226,9 +263,21 @@ function draw() {
 // Handle mouse press to start dragging
 function mousePressed() {
   try {
-    let d = dist(mouseX, mouseY, piece.pos.x, piece.pos.y);
-    if (d < size * 1.5) { // Clicked near piece center
-      dragging = true;
+    // Adjusted hitbox for larger hexagons
+    let w = size * Math.sqrt(3);
+    let h = size * 2;
+    for (let i = 0; i < piece.shape.length; i++) {
+      let offset = piece.pixelOffsets[i];
+      let drawPos = p5.Vector.add(piece.pos, offset);
+      if (
+        mouseX >= drawPos.x - w / 2 &&
+        mouseX <= drawPos.x + w / 2 &&
+        mouseY >= drawPos.y - h / 2 &&
+        mouseY <= drawPos.y + h / 2
+      ) {
+        dragging = true;
+        break;
+      }
     }
     lastError = null;
   } catch (err) {
