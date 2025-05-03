@@ -307,7 +307,11 @@ function draw() {
   try {
     if (paused) {
       if (treeBgImg) {
-        image(treeBgImg, 0, 0, width, height);
+        let newWidth = treeBgImg.width * 1.347;
+        let newHeight = treeBgImg.height * 1.3416;
+        let x = (width - newWidth) / 2;
+        let y = (height - newHeight) / 2;
+        image(treeBgImg, x, y, newWidth, newHeight); // Centered, 10% smaller
       }
       fill(255, 255, 0);
       textSize(48);
@@ -316,7 +320,11 @@ function draw() {
       return;
     }
     if (treeBgImg) {
-      image(treeBgImg, 0, 0, width, height);
+      let newWidth = treeBgImg.width * 1.347;
+      let newHeight = treeBgImg.height * 1.3416;
+      let x = (width - newWidth) / 2;
+      let y = (height - newHeight) / 2;
+      image(treeBgImg, x, y, newWidth, newHeight); // Centered, 10% smaller
     }
     //background(0, 0, 0, 0); // Fully transparent background
     // image(bg, 0, 0); // Removed, background buffer no longer needed
