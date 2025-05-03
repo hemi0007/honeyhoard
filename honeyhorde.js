@@ -9,6 +9,7 @@ let bg; // Graphics buffer for background
 let lastError = null; // Store last error for display
 let honeyImg;
 let bgImg; // Background image
+let treeBgImg; // Tree background image
 let fallInterval = 45; // Start slower
 let minFallInterval = 8; // Minimum speed
 let lastFall = 0; // Last frame when the piece fell
@@ -267,50 +268,58 @@ function removeLines() {
 
 // Setup function: initialize canvas and assets
 function setup() {
-  let canvas = createCanvas(800, 800);
+  const maxCanvasSize = 900;
+  let w = Math.min(windowWidth, maxCanvasSize);
+  let h = Math.min(windowHeight, maxCanvasSize);
+  let canvas = createCanvas(w, h);
   canvas.style('display', 'block');
-  canvas.style('margin', 'auto');
   origin = createVector(width / 2, height / 2); // Center the grid
+
+  // Dynamically calculate hex size to fit grid in window
+  let maxGridWidth = width * 0.85; // increased margin
+  let maxGridHeight = height * 0.85;
+  let sizeW = maxGridWidth / (Math.sqrt(3) * (2 * R + 1));
+  let sizeH = maxGridHeight / (1.5 * (2 * R + 1));
+  size = Math.min(sizeW, sizeH);
 
   // Initialize graphics buffer and draw the background image
   bg = createGraphics(width, height);
-  if (bgImg) {
-    // Draw at 109% of natural size, centered
-    const scale = 1.22;
-    const imgW = bgImg.width * scale;
-    const imgH = bgImg.height * scale;
-    let x = (width - imgW) / 2;
-    let y = (height - imgH) / 2;
-    bg.clear();
-    bg.image(bgImg, x, y, imgW, imgH);
-  }
+  // Removed background image drawing to keep only gameplay elements
+  // --- Hex pattern overlay ---
+  // drawHexPatternOverlay(bg, width, height); // Removed to eliminate non-gameplay white hex grid
 
   // Do not start the game until user clicks Start
   noLoop();
 }
 
 function preload() {
+  treeBgImg = loadImage('img/tree.png');
   honeyImg = loadImage('img/honey.png');
-  bgImg = loadImage('img/tree.png'); // Load background image
+  bgImg = loadImage('img/background.png'); // Load new background image
 }
 
 // Draw function: render the game
 function draw() {
   if (!gameStarted) {
-    background(0, 0, 0, 0); // Blank screen until started
+    //background(0, 0, 0, 0); // You can leave this commented out
     return;
   }
   try {
     if (paused) {
-      background(0, 0, 0, 180);
+      if (treeBgImg) {
+        image(treeBgImg, 0, 0, width, height);
+      }
       fill(255, 255, 0);
       textSize(48);
       textAlign(CENTER, CENTER);
       text('Paused', width/2, height/2);
       return;
     }
-    background(0);
-    image(bg, 0, 0); // Draw background from buffer
+    if (treeBgImg) {
+      image(treeBgImg, 0, 0, width, height);
+    }
+    //background(0, 0, 0, 0); // Fully transparent background
+    // image(bg, 0, 0); // Removed, background buffer no longer needed
 
     // Image size to cover hex without gaps
     const imgW = size * Math.sqrt(3) * 1.15; // Slightly larger to fill
@@ -476,20 +485,41 @@ function mouseReleased() {
 }
 
 window.addEventListener('resize', function() {
-  let minDim = Math.min(windowWidth, windowHeight) * 0.95;
-  resizeCanvas(minDim, minDim);
+  const maxCanvasSize = 900;
+  let w = Math.min(windowWidth, maxCanvasSize);
+  let h = Math.min(windowHeight, maxCanvasSize);
+  resizeCanvas(w, h);
   origin = createVector(width / 2, height / 2);
+
+  // Dynamically calculate hex size to fit grid in window
+  let maxGridWidth = width * 0.85; // increased margin
+  let maxGridHeight = height * 0.85;
+  let sizeW = maxGridWidth / (Math.sqrt(3) * (2 * R + 1));
+  let sizeH = maxGridHeight / (1.5 * (2 * R + 1));
+  size = Math.min(sizeW, sizeH);
+
   // Redraw background buffer if needed
   if (bgImg) {
     bg = createGraphics(width, height);
-    // Draw at 109% of natural size, centered
-    const scale = 0.80;
-    const imgW = bgImg.width * scale;
-    const imgH = bgImg.height * scale;
-    let x = (width - imgW) / 2;
-    let y = (height - imgH) / 2;
+    // --- Seamless CSS 'cover' background logic ---
+    const winW = windowWidth;
+    const winH = windowHeight;
+    const imgW = bgImg.width;
+    const imgH = bgImg.height;
+    const scale = Math.max(winW / imgW, winH / imgH);
+    const drawW = imgW * scale;
+    const drawH = imgH * scale;
+    const offsetX = (winW - drawW) / 2;
+    const offsetY = (winH - drawH) / 2;
+    // The source rectangle in the image to draw
+    const sx = (0 - offsetX) / scale;
+    const sy = (0 - offsetY) / scale;
+    const sWidth = width / scale;
+    const sHeight = height / scale;
     bg.clear();
-    bg.image(bgImg, x, y, imgW, imgH);
+    bg.image(bgImg, 0, 0, width, height, sx, sy, sWidth, sHeight);
+    // --- Hex pattern overlay ---
+    // drawHexPatternOverlay(bg, width, height); // Removed to eliminate non-gameplay white hex grid
   }
 });
 
@@ -503,4 +533,32 @@ function startGame() {
   paused = false;
   loop();
   generatePiece();
+}
+
+function drawHexPatternOverlay(gfx, w, h) {
+  // Subtle hex grid overlay
+  const hexRadius = Math.min(w, h) / 18; // scale with canvas
+  const hexHeight = hexRadius * 2;
+  const hexWidth = Math.sqrt(3) * hexRadius;
+  gfx.push();
+  gfx.stroke(255, 255, 255, 22); // very light white, alpha
+  gfx.strokeWeight(1);
+  for (let y = -hexHeight; y < h + hexHeight; y += hexHeight * 0.75) {
+    for (let x = -hexWidth; x < w + hexWidth; x += hexWidth) {
+      let offsetX = ((Math.floor(y / (hexHeight * 0.75)) % 2) === 0) ? 0 : hexWidth / 2;
+      drawHexagonOnGfx(gfx, x + offsetX, y, hexRadius);
+    }
+  }
+  gfx.pop();
+}
+
+function drawHexagonOnGfx(gfx, x, y, radius) {
+  gfx.beginShape();
+  for (let i = 0; i < 6; i++) {
+    let angle = Math.PI / 3 * i + Math.PI / 6;
+    let vx = x + radius * Math.cos(angle);
+    let vy = y + radius * Math.sin(angle);
+    gfx.vertex(vx, vy);
+  }
+  gfx.endShape(gfx.CLOSE);
 }
