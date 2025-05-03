@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Honey Horde</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
     <style>
         body {
             background: url('/img/background.png') no-repeat center center fixed;
@@ -32,6 +31,26 @@
         }
         #gameOverOverlay.show {
             opacity: 1;
+        }
+        /* Hamburger menu background reverted to default */
+        #hamburgerMenu {
+            background: transparent !important;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0002;
+            z-index: 30 !important;
+            pointer-events: auto;
+        }
+        #hamburgerMenu * {
+            pointer-events: none;
+        }
+        #howToPlayModal > div {
+            background: #F8F0DE !important;
+        }
+        #gameOverOverlay > div {
+            background: #F8F0DE !important;
+        }
+        #playAgainBtn {
+            color: #F8F0DE !important;
         }
     </style>
 </head>

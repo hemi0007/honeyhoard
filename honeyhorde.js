@@ -21,6 +21,8 @@ let lastRotateFrame = 0;
 let dragging = false;
 let dragOffset = null;
 let dragStartHex = null;
+let dragStartPos = null;
+let draggedFarEnough = false;
 
 // Predefined shapes (polyhexes) as arrays of [q,r] offsets
 const shapes = [
@@ -394,7 +396,6 @@ function keyReleased() {
 
 function mousePressed() {
   if (gameOver || paused) return;
-  // Check if mouse is over any part of the current piece
   for (let offset of piece.shape) {
     let absHex = piece.hexPos.add(offset);
     let p = hexToPixel(absHex);
@@ -402,7 +403,8 @@ function mousePressed() {
     if (d < size * 1.1) {
       dragging = true;
       dragStartHex = piece.hexPos;
-      // Calculate offset between mouse and piece origin
+      dragStartPos = createVector(mouseX, mouseY);
+      draggedFarEnough = false;
       let pieceOriginPx = hexToPixel(piece.hexPos);
       dragOffset = createVector(mouseX - pieceOriginPx.x, mouseY - pieceOriginPx.y);
       return;
@@ -412,22 +414,24 @@ function mousePressed() {
 
 function mouseDragged() {
   if (!dragging || gameOver || paused) return;
-  // Snap the piece's origin to the nearest hex under the mouse
   let px = createVector(mouseX - dragOffset.x, mouseY - dragOffset.y);
   let hex = pixelToHex(px);
   if (canPlace(hex, piece.shape)) {
     piece.hexPos = hex;
+  }
+  // Check if mouse moved far enough to count as a drag
+  if (dragStartPos && dist(mouseX, mouseY, dragStartPos.x, dragStartPos.y) > 5) {
+    draggedFarEnough = true;
   }
 }
 
 function mouseReleased() {
   if (!dragging || gameOver || paused) return;
   dragging = false;
-  // Try to place the piece at its current position
-  if (canPlace(piece.hexPos, piece.shape)) {
+  // Only place the piece if it was actually dragged
+  if (draggedFarEnough && canPlace(piece.hexPos, piece.shape)) {
     placePiece();
   } else {
-    // Snap back to original position if invalid
     piece.hexPos = dragStartHex;
   }
 }
