@@ -273,8 +273,8 @@ function setup() {
   origin = createVector(width / 2, height / 2); // Center the grid
 
   // Dynamically calculate hex size to fit grid in window
-  let maxGridWidth = width * 0.85; // 85% of width for margin
-  let maxGridHeight = height * 0.85; // 85% of height for margin
+  let maxGridWidth = width * 0.7; // 70% of width for more margin
+  let maxGridHeight = height * 0.7; // 70% of height for more margin
   let sizeW = maxGridWidth / (Math.sqrt(3) * (2 * R + 1));
   let sizeH = maxGridHeight / (1.5 * (2 * R + 1));
   size = Math.min(sizeW, sizeH);
@@ -380,7 +380,7 @@ function draw() {
     const btnW = textWidth(scoreText) + paddingX * 2;
     const btnH = 48;
     const btnX = width / 2 - btnW / 2;
-    const btnY = 18;
+    const btnY = 64;
     // Draw button background
     push();
     noStroke();
@@ -496,8 +496,8 @@ function windowResized() {
   origin = createVector(width / 2, height / 2);
 
   // Dynamically recalculate hex size to fit grid in window
-  let maxGridWidth = width * 0.85;
-  let maxGridHeight = height * 0.85;
+  let maxGridWidth = width * 0.7;
+  let maxGridHeight = height * 0.7;
   let sizeW = maxGridWidth / (Math.sqrt(3) * (2 * R + 1));
   let sizeH = maxGridHeight / (1.5 * (2 * R + 1));
   size = Math.min(sizeW, sizeH);
