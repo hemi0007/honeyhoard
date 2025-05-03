@@ -7,6 +7,7 @@ let score = 0;
 let piece; // Current draggable piece
 let dragging = false;
 let bg; // Graphics buffer for background
+let lastError = null; // Store last error for display
 
 // Predefined shapes (polyhexes) as arrays of [q,r] offsets
 const shapes = [
@@ -88,14 +89,20 @@ function drawHexagon(x, y, radius) {
 
 // Generate a new piece with shape and pixel offsets
 function generatePiece() {
-  const shapeIndex = floor(random(shapes.length));
-  const shape = shapes[shapeIndex].map(([dq, dr]) => new Hex(dq, dr));
-  const pixelOffsets = shape.map(offset => p5.Vector.sub(hexToPixel(offset), hexToPixel(new Hex(0, 0))));
-  piece = {
-    shape: shape,
-    pixelOffsets: pixelOffsets,
-    pos: createVector(width / 2, height - 100) // Starting position below grid
-  };
+  try {
+    const shapeIndex = floor(random(shapes.length));
+    const shape = shapes[shapeIndex].map(([dq, dr]) => new Hex(dq, dr));
+    const pixelOffsets = shape.map(offset => p5.Vector.sub(hexToPixel(offset), hexToPixel(new Hex(0, 0))));
+    piece = {
+      shape: shape,
+      pixelOffsets: pixelOffsets,
+      pos: createVector(width / 2, height - 100) // Starting position below grid
+    };
+    lastError = null;
+  } catch (err) {
+    lastError = err;
+    console.error('Error in generatePiece:', err);
+  }
 }
 
 // Remove completed lines and handle chain reactions
@@ -163,79 +170,112 @@ function setup() {
 
 // Draw function: render the game
 function draw() {
-  background(0);
-  // if (treeBgImg) {
-  //   image(treeBgImg, 0, 0, width, height);
-  // }
-  image(bg, 0, 0); // Draw tree bark background
+  try {
+    background(0);
+    // if (treeBgImg) {
+    //   image(treeBgImg, 0, 0, width, height);
+    // }
+    image(bg, 0, 0); // Draw tree bark background
 
-  // Draw hexagonal grid (true hexagon)
-  for (let q = -R; q <= R; q++) {
-    for (let r = -R; r <= R; r++) {
-      let s = -q - r;
-      if (Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) > R) continue;
-      let hex = new Hex(q, r);
-      let p = hexToPixel(hex);
-      if (filled.has(hex.toString())) {
-        fill(255, 204, 0); // Yellow for honey-filled hexes
-      } else {
-        fill(200); // Gray for empty hexes
+    // Draw hexagonal grid (true hexagon)
+    for (let q = -R; q <= R; q++) {
+      for (let r = -R; r <= R; r++) {
+        let s = -q - r;
+        if (Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) > R) continue;
+        let hex = new Hex(q, r);
+        let p = hexToPixel(hex);
+        if (filled.has(hex.toString())) {
+          fill(255, 204, 0); // Yellow for honey-filled hexes
+        } else {
+          fill(200); // Gray for empty hexes
+        }
+        noStroke();
+        drawHexagon(p.x, p.y, size);
       }
+    }
+
+    // Draw current piece
+    for (let i = 0; i < piece.shape.length; i++) {
+      let offset = piece.pixelOffsets[i];
+      let drawPos = p5.Vector.add(piece.pos, offset);
+      fill(255, 204, 0); // Yellow for honey
       noStroke();
-      drawHexagon(p.x, p.y, size);
+      drawHexagon(drawPos.x, drawPos.y, size);
+    }
+
+    // Draw score
+    textSize(32);
+    fill(255);
+    text(`Score: ${score}`, 10, 30);
+    lastError = null;
+  } catch (err) {
+    lastError = err;
+    console.error('Error in draw:', err);
+    background(50, 0, 0);
+    fill(255, 0, 0);
+    textSize(24);
+    textAlign(CENTER, CENTER);
+    text('An error occurred. See console for details.', width / 2, height / 2);
+    if (err && err.message) {
+      textSize(16);
+      text(err.message, width / 2, height / 2 + 40);
     }
   }
-
-  // Draw current piece
-  for (let i = 0; i < piece.shape.length; i++) {
-    let offset = piece.pixelOffsets[i];
-    let drawPos = p5.Vector.add(piece.pos, offset);
-    fill(255, 204, 0); // Yellow for honey
-    noStroke();
-    drawHexagon(drawPos.x, drawPos.y, size);
-  }
-
-  // Draw score
-  textSize(32);
-  fill(255);
-  text(`Score: ${score}`, 10, 30);
 }
 
 // Handle mouse press to start dragging
 function mousePressed() {
-  let d = dist(mouseX, mouseY, piece.pos.x, piece.pos.y);
-  if (d < size * 1.5) { // Clicked near piece center
-    dragging = true;
+  try {
+    let d = dist(mouseX, mouseY, piece.pos.x, piece.pos.y);
+    if (d < size * 1.5) { // Clicked near piece center
+      dragging = true;
+    }
+    lastError = null;
+  } catch (err) {
+    lastError = err;
+    console.error('Error in mousePressed:', err);
   }
 }
 
 // Update piece position while dragging
 function mouseDragged() {
-  if (dragging) {
-    piece.pos.set(mouseX, mouseY);
+  try {
+    if (dragging) {
+      piece.pos.set(mouseX, mouseY);
+    }
+    lastError = null;
+  } catch (err) {
+    lastError = err;
+    console.error('Error in mouseDragged:', err);
   }
 }
 
 // Handle mouse release to place piece
 function mouseReleased() {
-  if (dragging) {
-    dragging = false;
-    let targetHex = pixelToHex(piece.pos);
-    let canPlace = true;
-    for (let offset of piece.shape) {
-      let absHex = targetHex.add(offset);
-      if (!isWithinBounds(absHex) || filled.has(absHex.toString())) {
-        canPlace = false;
-        break;
-      }
-    }
-    if (canPlace) {
+  try {
+    if (dragging) {
+      dragging = false;
+      let targetHex = pixelToHex(piece.pos);
+      let canPlace = true;
       for (let offset of piece.shape) {
         let absHex = targetHex.add(offset);
-        filled.add(absHex.toString());
+        if (!isWithinBounds(absHex) || filled.has(absHex.toString())) {
+          canPlace = false;
+          break;
+        }
       }
-      removeLines();
-      generatePiece();
+      if (canPlace) {
+        for (let offset of piece.shape) {
+          let absHex = targetHex.add(offset);
+          filled.add(absHex.toString());
+        }
+        removeLines();
+        generatePiece();
+      }
     }
+    lastError = null;
+  } catch (err) {
+    lastError = err;
+    console.error('Error in mouseReleased:', err);
   }
 }
