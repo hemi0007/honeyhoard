@@ -5,7 +5,6 @@ let origin = null; // Will be set in setup
 let filled = new Set(); // Stores filled hex positions as "q,r" strings
 let score = 0;
 let piece; // Current falling piece
-let bg; // Graphics buffer for background
 let lastError = null; // Store last error for display
 let honeyImg;
 let bgImg; // Background image
@@ -268,32 +267,24 @@ function removeLines() {
 
 // Setup function: initialize canvas and assets
 function setup() {
-  const maxCanvasSize = 900;
-  let w = Math.min(windowWidth, maxCanvasSize);
-  let h = Math.min(windowHeight, maxCanvasSize);
-  let canvas = createCanvas(w, h);
+  let canvas = createCanvas(windowWidth, windowHeight);
   canvas.style('display', 'block');
+  pixelDensity(window.devicePixelRatio); // Handle high-DPI displays
   origin = createVector(width / 2, height / 2); // Center the grid
 
   // Dynamically calculate hex size to fit grid in window
-  let maxGridWidth = width * 0.85; // increased margin
-  let maxGridHeight = height * 0.85;
+  let maxGridWidth = width * 0.85; // 85% of width for margin
+  let maxGridHeight = height * 0.85; // 85% of height for margin
   let sizeW = maxGridWidth / (Math.sqrt(3) * (2 * R + 1));
   let sizeH = maxGridHeight / (1.5 * (2 * R + 1));
   size = Math.min(sizeW, sizeH);
-
-  // Initialize graphics buffer and draw the background image
-  bg = createGraphics(width, height);
-  // Removed background image drawing to keep only gameplay elements
-  // --- Hex pattern overlay ---
-  // drawHexPatternOverlay(bg, width, height); // Removed to eliminate non-gameplay white hex grid
 
   // Do not start the game until user clicks Start
   noLoop();
 }
 
 function preload() {
-  treeBgImg = loadImage('img/tree.png');
+  treeBgImg = loadImage('img/background.png');
   honeyImg = loadImage('img/honey.png');
   bgImg = loadImage('img/background.png'); // Load new background image
 }
@@ -301,35 +292,35 @@ function preload() {
 // Draw function: render the game
 function draw() {
   if (!gameStarted) {
-    //background(0, 0, 0, 0); // You can leave this commented out
     return;
   }
   try {
+    background(0); // Opaque black background to cover full canvas
     if (paused) {
       if (treeBgImg) {
-        let newWidth = treeBgImg.width * 1.537;
-        let newHeight = treeBgImg.height * 1.5416;
-        let x = (width - newWidth) / 2;
-        let y = (height - newHeight) / 2;
-        image(treeBgImg, x, y, newWidth, newHeight); // Centered, 10% smaller
+        // Always fill the width, crop top/bottom if needed
+        let drawWidth = width;
+        let drawHeight = width * (treeBgImg.height / treeBgImg.width);
+        let x = 0;
+        let y = (height - drawHeight) / 2;
+        image(treeBgImg, x, y, drawWidth, drawHeight);
       }
       fill(255, 255, 0);
       textSize(48);
       textAlign(CENTER, CENTER);
-      text('Paused', width/2, height/2);
+      text('Paused', width / 2, height / 2);
       return;
     }
     if (treeBgImg) {
-      let newWidth = treeBgImg.width * 1.337;
-      let newHeight = treeBgImg.height * 1.3416;
-      let x = (width - newWidth) / 2;
-      let y = (height - newHeight) / 2;
-      image(treeBgImg, x, y, newWidth, newHeight); // Centered, 10% smaller
+      // Always fill the width, crop top/bottom if needed
+      let drawWidth = width;
+      let drawHeight = width * (treeBgImg.height / treeBgImg.width);
+      let x = 0;
+      let y = (height - drawHeight) / 2;
+      image(treeBgImg, x, y, drawWidth, drawHeight);
     }
-    //background(0, 0, 0, 0); // Fully transparent background
-    // image(bg, 0, 0); // Removed, background buffer no longer needed
 
-    // Image size to cover hex without gapsgi
+    // Image size to cover hex without gaps
     const imgW = size * Math.sqrt(3) * 1.15; // Slightly larger to fill
     const imgH = size * 2 * 1.15;
 
@@ -356,6 +347,12 @@ function draw() {
           strokeWeight(2);
           drawHexagon(p.x, p.y, size);
           noStroke();
+          // Optional: Make empty hexes transparent to show background
+          // noFill();
+          // stroke('#5C2E00');
+          // strokeWeight(2);
+          // drawHexagon(p.x, p.y, size);
+          // noStroke();
         }
       }
     }
@@ -492,44 +489,19 @@ function mouseReleased() {
   }
 }
 
-window.addEventListener('resize', function() {
-  const maxCanvasSize = 900;
-  let w = Math.min(windowWidth, maxCanvasSize);
-  let h = Math.min(windowHeight, maxCanvasSize);
-  resizeCanvas(w, h);
+// Handle window resizing
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  pixelDensity(window.devicePixelRatio); // Re-apply for high-DPI displays
   origin = createVector(width / 2, height / 2);
 
-  // Dynamically calculate hex size to fit grid in window
-  let maxGridWidth = width * 0.85; // increased margin
+  // Dynamically recalculate hex size to fit grid in window
+  let maxGridWidth = width * 0.85;
   let maxGridHeight = height * 0.85;
   let sizeW = maxGridWidth / (Math.sqrt(3) * (2 * R + 1));
   let sizeH = maxGridHeight / (1.5 * (2 * R + 1));
   size = Math.min(sizeW, sizeH);
-
-  // Redraw background buffer if needed
-  if (bgImg) {
-    bg = createGraphics(width, height);
-    // --- Seamless CSS 'cover' background logic ---
-    const winW = windowWidth;
-    const winH = windowHeight;
-    const imgW = bgImg.width;
-    const imgH = bgImg.height;
-    const scale = Math.max(winW / imgW, winH / imgH);
-    const drawW = imgW * scale;
-    const drawH = imgH * scale;
-    const offsetX = (winW - drawW) / 2;
-    const offsetY = (winH - drawH) / 2;
-    // The source rectangle in the image to draw
-    const sx = (0 - offsetX) / scale;
-    const sy = (0 - offsetY) / scale;
-    const sWidth = width / scale;
-    const sHeight = height / scale;
-    bg.clear();
-    bg.image(bgImg, 0, 0, width, height, sx, sy, sWidth, sHeight);
-    // --- Hex pattern overlay ---
-    // drawHexPatternOverlay(bg, width, height); // Removed to eliminate non-gameplay white hex grid
-  }
-});
+}
 
 function startGame() {
   gameStarted = true;

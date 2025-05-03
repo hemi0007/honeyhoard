@@ -6,20 +6,23 @@
     <title>Honey Hoard</title>
     <style>
         body {
-            background: url('/img/background.png') no-repeat;
-            background-size: cover;
-            margin: 0;
-            padding: 0;
+          background: url('/img/background.png') no-repeat 0 0 fixed;
+          margin: 0;
+          padding: 0;
+          overflow: hidden; /* Prevents scrolling */
+          background-size: cover;
+          background-position: center;
         }
         canvas {
-            background: transparent !important; 
-            border: 6px solid #000; /* black border */
-            border-radius: 18px;        /* rounded corners */
-            box-shadow: 0 0 24px #0006; /* subtle shadow */
-            display: block;
-            margin: 40px auto;
-            z-index: 1;
-            position: relative;
+            background: url('/img/background.png') no-repeat 0 0 fixed;      /* rounded corners */
+            top: 0;
+            left: 0;
+            width: 100%; /* Full viewport width */
+            height: 100%; /* Full viewport height */
+            background: transparent; /* Transparent canvas background */
+            background-size: cover;
+            background-position: center;
+            display: block; /* Removes extra spacing */
         }
         #gameOverOverlay, #hamburgerMenu, #howToPlayModal {
             z-index: 20 !important;
