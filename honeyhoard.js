@@ -116,7 +116,7 @@ function generatePiece() {
     const shapeIndex = floor(random(shapes.length));
     const shape = shapes[shapeIndex].map(([dq, dr]) => new Hex(dq, dr));
     piece = {
-      hexPos: new Hex(0, -R), // Spawn at the top row
+      hexPos: new Hex(2, -R), // Spawn two hexes to the right at the top row
       shape: shape
     };
     lastError = null;
@@ -307,8 +307,8 @@ function draw() {
   try {
     if (paused) {
       if (treeBgImg) {
-        let newWidth = treeBgImg.width * 1.347;
-        let newHeight = treeBgImg.height * 1.3416;
+        let newWidth = treeBgImg.width * 1.537;
+        let newHeight = treeBgImg.height * 1.5416;
         let x = (width - newWidth) / 2;
         let y = (height - newHeight) / 2;
         image(treeBgImg, x, y, newWidth, newHeight); // Centered, 10% smaller
@@ -320,7 +320,7 @@ function draw() {
       return;
     }
     if (treeBgImg) {
-      let newWidth = treeBgImg.width * 1.347;
+      let newWidth = treeBgImg.width * 1.337;
       let newHeight = treeBgImg.height * 1.3416;
       let x = (width - newWidth) / 2;
       let y = (height - newHeight) / 2;
@@ -329,7 +329,7 @@ function draw() {
     //background(0, 0, 0, 0); // Fully transparent background
     // image(bg, 0, 0); // Removed, background buffer no longer needed
 
-    // Image size to cover hex without gaps
+    // Image size to cover hex without gapsgi
     const imgW = size * Math.sqrt(3) * 1.15; // Slightly larger to fill
     const imgH = size * 2 * 1.15;
 
@@ -542,6 +542,8 @@ function startGame() {
   loop();
   generatePiece();
 }
+
+window.startGame = startGame;
 
 function drawHexPatternOverlay(gfx, w, h) {
   // Subtle hex grid overlay
