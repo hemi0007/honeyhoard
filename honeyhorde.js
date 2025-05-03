@@ -14,6 +14,13 @@ let minFallInterval = 8; // Minimum speed
 let lastFall = 0; // Last frame when the piece fell
 let gameOver = false;
 let softDrop = false;
+let paused = false;
+let lastRotateFrame = 0;
+
+// Drag-and-drop state
+let dragging = false;
+let dragOffset = null;
+let dragStartHex = null;
 
 // Predefined shapes (polyhexes) as arrays of [q,r] offsets
 const shapes = [
@@ -183,7 +190,10 @@ function showGameOver() {
     const scoreElem = document.getElementById('finalScore');
     if (scoreElem) scoreElem.textContent = `Your Score: ${score}`;
     const overlay = document.getElementById('gameOverOverlay');
-    if (overlay) overlay.style.display = 'flex';
+    if (overlay) {
+      overlay.style.display = 'flex';
+      setTimeout(() => overlay.classList.add('show'), 10);
+    }
   }
 }
 
@@ -197,7 +207,10 @@ function restartGame() {
   generatePiece();
   if (typeof document !== 'undefined') {
     const overlay = document.getElementById('gameOverOverlay');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) {
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.style.display = 'none', 500);
+    }
   }
 }
 
@@ -251,7 +264,7 @@ function setup() {
 
   // Initialize graphics buffer and draw the background image
   bg = createGraphics(width, height);
-  bg.image(bgImg, 0, 0, width, height); // Draw image to buffer, scaled to canvas size
+  if (bgImg) bg.image(bgImg, 0, 0, width, height); // Draw image to buffer, scaled to canvas size
 
   generatePiece();
 }
@@ -264,6 +277,14 @@ function preload() {
 // Draw function: render the game
 function draw() {
   try {
+    if (paused) {
+      background(0, 0, 0, 180);
+      fill(255, 255, 0);
+      textSize(48);
+      textAlign(CENTER, CENTER);
+      text('Paused', width/2, height/2);
+      return;
+    }
     background(0);
     image(bg, 0, 0); // Draw background from buffer
 
@@ -320,7 +341,7 @@ function draw() {
 
     // Automatic falling (soft drop if down arrow held)
     let currentInterval = softDrop ? 6 : fallInterval;
-    if (frameCount - lastFall >= currentInterval) {
+    if (!dragging && frameCount - lastFall >= currentInterval) {
       movePieceDown();
       lastFall = frameCount;
     }
@@ -344,12 +365,22 @@ function draw() {
 // Handle key presses for piece control
 function keyPressed() {
   if (gameOver) return;
+  if (key === 'p' || key === 'P') {
+    paused = !paused;
+    if (paused) {
+      noLoop();
+    } else {
+      loop();
+    }
+    return;
+  }
   if (keyCode === LEFT_ARROW) {
     movePieceLeft();
   } else if (keyCode === RIGHT_ARROW) {
     movePieceRight();
-  } else if (keyCode === UP_ARROW || key === ' ') {
+  } else if ((keyCode === UP_ARROW || keyCode === 32) && frameCount - lastRotateFrame > 6) {
     rotatePiece();
+    lastRotateFrame = frameCount;
   } else if (keyCode === DOWN_ARROW) {
     softDrop = true;
   }
@@ -360,3 +391,54 @@ function keyReleased() {
     softDrop = false;
   }
 }
+
+function mousePressed() {
+  if (gameOver || paused) return;
+  // Check if mouse is over any part of the current piece
+  for (let offset of piece.shape) {
+    let absHex = piece.hexPos.add(offset);
+    let p = hexToPixel(absHex);
+    let d = dist(mouseX, mouseY, p.x, p.y);
+    if (d < size * 1.1) {
+      dragging = true;
+      dragStartHex = piece.hexPos;
+      // Calculate offset between mouse and piece origin
+      let pieceOriginPx = hexToPixel(piece.hexPos);
+      dragOffset = createVector(mouseX - pieceOriginPx.x, mouseY - pieceOriginPx.y);
+      return;
+    }
+  }
+}
+
+function mouseDragged() {
+  if (!dragging || gameOver || paused) return;
+  // Snap the piece's origin to the nearest hex under the mouse
+  let px = createVector(mouseX - dragOffset.x, mouseY - dragOffset.y);
+  let hex = pixelToHex(px);
+  if (canPlace(hex, piece.shape)) {
+    piece.hexPos = hex;
+  }
+}
+
+function mouseReleased() {
+  if (!dragging || gameOver || paused) return;
+  dragging = false;
+  // Try to place the piece at its current position
+  if (canPlace(piece.hexPos, piece.shape)) {
+    placePiece();
+  } else {
+    // Snap back to original position if invalid
+    piece.hexPos = dragStartHex;
+  }
+}
+
+window.addEventListener('resize', function() {
+  let minDim = Math.min(windowWidth, windowHeight) * 0.95;
+  resizeCanvas(minDim, minDim);
+  origin = createVector(width / 2, height / 2);
+  // Redraw background buffer if needed
+  if (bgImg) {
+    bg = createGraphics(width, height);
+    bg.image(bgImg, 0, 0, width, height);
+  }
+});

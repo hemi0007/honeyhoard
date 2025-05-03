@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Honey Horde</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
     <style>
         body {
             background: url('/img/background.png') no-repeat center center fixed;
@@ -17,18 +18,71 @@
             box-shadow: 0 0 24px #0006; /* subtle shadow */
             display: block;
             margin: 40px auto;
+            z-index: 1;
+            position: relative;
+        }
+        #gameOverOverlay, #hamburgerMenu, #howToPlayModal {
+            z-index: 20 !important;
+            pointer-events: auto;
+        }
+        #howToPlayModal { z-index: 30 !important; }
+        #gameOverOverlay {
+            transition: opacity 0.5s;
+            opacity: 0;
+        }
+        #gameOverOverlay.show {
+            opacity: 1;
         }
     </style>
 </head>
 <body>
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
-    <script src="honeyhorde.js"></script>
+    <div id="hamburgerMenu" style="position:fixed;top:24px;right:32px;z-index:20;cursor:pointer;width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
+      <div style="width:32px;height:32px;display:flex;flex-direction:column;justify-content:space-between;">
+        <span style="display:block;height:4px;width:100%;background:#fff;border-radius:2px;"></span>
+        <span style="display:block;height:4px;width:100%;background:#fff;border-radius:2px;"></span>
+        <span style="display:block;height:4px;width:100%;background:#fff;border-radius:2px;"></span>
+      </div>
+    </div>
+    <div id="howToPlayModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);z-index:30;align-items:center;justify-content:center;">
+      <div style="background:#fff;padding:36px 48px;border-radius:18px;max-width:90vw;max-height:90vh;overflow:auto;box-shadow:0 0 24px #000a;position:relative;">
+        <button id="closeHowToPlay" style="position:absolute;top:12px;right:16px;font-size:2em;background:none;border:none;cursor:pointer;color:#a0522d;">&times;</button>
+        <h2 style="color:#a0522d;">How to Play</h2>
+        <ul style="font-size:1.2em;color:#222;line-height:1.6;max-width:500px;">
+          <li>Move the falling honeycomb piece left/right with the <b>←</b> and <b>→</b> arrow keys.</li>
+          <li>Rotate the piece with the <b>↑</b> arrow or <b>Spacebar</b>.</li>
+          <li>Press <b>↓</b> to make the piece fall faster.</li>
+          <li>Press <b>P</b> to pause or resume the game.</li>
+          <li>Fill lines of <b>4 or more</b> honeycombs in a row to clear them and score points.</li>
+          <li>The game ends if a piece reaches the top of the board.</li>
+        </ul>
+      </div>
+    </div>
     <div id="gameOverOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center;">
       <div style="background:#fff; padding:40px 60px; border-radius:20px; text-align:center; box-shadow:0 0 24px #000a;">
         <h1 style="color:#a0522d;">Game Over</h1>
         <p id="finalScore" style="font-size:2em; color:#222; margin:20px 0;"></p>
-        <button onclick="restartGame()" style="font-size:1.5em; padding:10px 30px; border-radius:10px; border:none; background:#D68C1F; color:#fff; cursor:pointer;">Play Again</button>
+        <button id="playAgainBtn" style="font-size:1.5em; padding:10px 30px; border-radius:10px; border:none; background:#D68C1F; color:#fff; cursor:pointer;">Play Again</button>
       </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
+    <script src="honeyhorde.js"></script>
+    <script>
+      document.getElementById('hamburgerMenu').onclick = function() {
+        document.getElementById('howToPlayModal').style.display = 'flex';
+      };
+      document.getElementById('closeHowToPlay').onclick = function() {
+        document.getElementById('howToPlayModal').style.display = 'none';
+      };
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          document.getElementById('howToPlayModal').style.display = 'none';
+        }
+        // Allow Enter to restart game if overlay is visible
+        if ((e.key === 'Enter' || e.keyCode === 13) && document.getElementById('gameOverOverlay').style.display === 'flex') {
+          restartGame();
+        }
+      });
+      document.getElementById('playAgainBtn').onclick = restartGame;
+    </script>
 </body>
 </html>
