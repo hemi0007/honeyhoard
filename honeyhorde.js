@@ -16,6 +16,7 @@ let gameOver = false;
 let softDrop = false;
 let paused = false;
 let lastRotateFrame = 0;
+let gameStarted = false;
 
 // Drag-and-drop state
 let dragging = false;
@@ -29,7 +30,14 @@ const shapes = [
   [[0, 0]],                     // Single hex
   [[0, 0], [1, 0]],            // Domino
   [[0, 0], [1, 0], [2, 0]],    // Straight tromino
-  [[0, 0], [1, 0], [0, 1]]     // Bent tromino
+  [[0, 0], [1, 0], [0, 1]],    // Bent tromino
+  // 4-hex (tetromino) shapes
+  [[0, 0], [1, 0], [2, 0], [3, 0]], // Straight tetromino
+  [[0, 0], [1, 0], [0, 1], [0, 2]], // L-shape
+  [[0, 0], [1, 0], [1, 1], [2, 1]], // S-shape
+  [[0, 0], [1, 0], [1, 1], [2, 0]], // T-shape
+  [[0, 0], [1, 0], [0, 1], [-1, 1]], // Z-shape
+  [[0, 0], [1, 0], [0, 1], [1, 1]], // Square (diamond) shape
 ];
 
 // Directions for line checking: three pairs of opposite directions
@@ -238,7 +246,7 @@ function removeLines() {
           line.push(current);
           current = current.add(dir2);
         }
-        if (line.length >= 4) {
+        if (line.length >= 5) {
           for (let h of line) {
             toRemove.add(h.toString());
           }
@@ -268,7 +276,8 @@ function setup() {
   bg = createGraphics(width, height);
   if (bgImg) bg.image(bgImg, 0, 0, width, height); // Draw image to buffer, scaled to canvas size
 
-  generatePiece();
+  // Do not start the game until user clicks Start
+  noLoop();
 }
 
 function preload() {
@@ -278,6 +287,10 @@ function preload() {
 
 // Draw function: render the game
 function draw() {
+  if (!gameStarted) {
+    background(0, 0, 0, 0); // Blank screen until started
+    return;
+  }
   try {
     if (paused) {
       background(0, 0, 0, 180);
@@ -336,10 +349,27 @@ function draw() {
       }
     }
 
-    // Draw score
+    // Draw score as a button
+    const scoreText = `Score: ${score}`;
     textSize(32);
-    fill(255);
-    text(`Score: ${score}`, 10, 30);
+    const paddingX = 32;
+    const paddingY = 12;
+    const btnW = textWidth(scoreText) + paddingX * 2;
+    const btnH = 48;
+    const btnX = width / 2 - btnW / 2;
+    const btnY = 18;
+    // Draw button background
+    push();
+    noStroke();
+    fill(40, 30, 10, 220); // dark, semi-transparent shadow
+    rect(btnX + 3, btnY + 4, btnW, btnH, 18); // shadow
+    fill('#D68C1F'); // Play button yellow
+    rect(btnX, btnY, btnW, btnH, 18);
+    pop();
+    // Draw score text
+    fill('#F8F0DE');
+    textAlign(CENTER, CENTER);
+    text(scoreText, width / 2, btnY + btnH / 2);
 
     // Automatic falling (soft drop if down arrow held)
     let currentInterval = softDrop ? 6 : fallInterval;
@@ -446,3 +476,15 @@ window.addEventListener('resize', function() {
     bg.image(bgImg, 0, 0, width, height);
   }
 });
+
+function startGame() {
+  gameStarted = true;
+  filled = new Set();
+  score = 0;
+  fallInterval = 45;
+  lastFall = 0;
+  gameOver = false;
+  paused = false;
+  loop();
+  generatePiece();
+}

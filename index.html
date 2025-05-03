@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Honey Horde</title>
+    <title>Honey Hoard</title>
     <style>
         body {
             background: url('/img/background.png') no-repeat center center fixed;
@@ -83,6 +83,12 @@
         <button id="playAgainBtn" style="font-size:1.5em; padding:10px 30px; border-radius:10px; border:none; background:#D68C1F; color:#fff; cursor:pointer;">Play Again</button>
       </div>
     </div>
+    <div id="startOverlay" style="display:flex; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:40; flex-direction:column; align-items:center; justify-content:center;">
+      <div style="background:#F8F0DE; padding:40px 60px; border-radius:20px; text-align:center; box-shadow:0 0 24px #000a;">
+        <h1 style="color:#a0522d;">Honey Hoard</h1>
+        <button id="startGameBtn" style="font-size:1.5em; padding:10px 30px; border-radius:10px; border:none; background:#D68C1F; color:#fff; cursor:pointer;">Start Game</button>
+      </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.js"></script>
     <script src="honeyhorde.js"></script>
     <script>
@@ -102,6 +108,10 @@
         }
       });
       document.getElementById('playAgainBtn').onclick = restartGame;
+      document.getElementById('startGameBtn').onclick = function() {
+        if (typeof startGame === 'function') startGame();
+        document.getElementById('startOverlay').style.display = 'none';
+      };
     </script>
 </body>
 </html>
