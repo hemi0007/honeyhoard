@@ -1,15 +1,17 @@
 // Global variables
 let R = 5; // Hexagon radius (distance from center to corner)
-let size = 30; // Hexagon radius in pixels (increased for wider honeycomb)
+let size = 30; // Hexagon radius in pixels
 let origin = null; // Will be set in setup
 let filled = new Set(); // Stores filled hex positions as "q,r" strings
 let score = 0;
-let piece; // Current draggable piece
-let dragging = false;
+let piece; // Current falling piece
 let bg; // Graphics buffer for background
 let lastError = null; // Store last error for display
 let honeyImg;
-let bgImg; // New variable for background image
+let bgImg; // Background image
+let fallInterval = 45; // Start slower
+let minFallInterval = 8; // Minimum speed
+let lastFall = 0; // Last frame when the piece fell
 
 // Predefined shapes (polyhexes) as arrays of [q,r] offsets
 const shapes = [
@@ -42,15 +44,15 @@ class Hex {
 
 // Convert hex coordinates to pixel coordinates (pointy-top orientation)
 function hexToPixel(hex) {
-  const x = size * Math.sqrt(3) * (hex.q + hex.r / 2); // Horizontal spacing
-  const y = size * (3 / 2) * hex.r; // Vertical spacing
+  const x = size * Math.sqrt(3) * (hex.q + hex.r / 2);
+  const y = size * (3 / 2) * hex.r;
   return createVector(origin.x + x, origin.y + y);
 }
 
 // Convert pixel coordinates to hex coordinates (pointy-top orientation)
 function pixelToHex(p) {
-  const q = ((p.x - origin.x) * Math.sqrt(3)/3 - (p.y - origin.y) / 3) / size;
-  const r = (2/3 * (p.y - origin.y)) / size;
+  const q = ((p.x - origin.x) * Math.sqrt(3) / 3 - (p.y - origin.y) / 3) / size;
+  const r = (2 / 3 * (p.y - origin.y)) / size;
   return roundHex(new Hex(q, r));
 }
 
@@ -88,21 +90,94 @@ function drawHexagon(x, y, radius) {
   endShape(CLOSE);
 }
 
-// Generate a new piece with shape and pixel offsets
+// Generate a new piece at the top of the grid
 function generatePiece() {
   try {
     const shapeIndex = floor(random(shapes.length));
     const shape = shapes[shapeIndex].map(([dq, dr]) => new Hex(dq, dr));
-    const pixelOffsets = shape.map(offset => p5.Vector.sub(hexToPixel(offset), hexToPixel(new Hex(0, 0))));
     piece = {
-      shape: shape,
-      pixelOffsets: pixelOffsets,
-      pos: createVector(width / 2, height - 40) // Further down from the board
+      hexPos: new Hex(0, -R), // Spawn at the top row
+      shape: shape
     };
     lastError = null;
   } catch (err) {
     lastError = err;
     console.error('Error in generatePiece:', err);
+  }
+}
+
+// Check if a piece can be placed at a given hex position
+function canPlace(hexPos, shape) {
+  for (let offset of shape) {
+    let absHex = hexPos.add(offset);
+    if (!isWithinBounds(absHex) || filled.has(absHex.toString())) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Move the piece down by one row
+function movePieceDown() {
+  let newHexPos = new Hex(piece.hexPos.q, piece.hexPos.r + 1);
+  if (canPlace(newHexPos, piece.shape)) {
+    piece.hexPos = newHexPos;
+  } else {
+    placePiece();
+  }
+}
+
+// Move the piece left
+function movePieceLeft() {
+  let newHexPos = new Hex(piece.hexPos.q - 1, piece.hexPos.r);
+  if (canPlace(newHexPos, piece.shape)) {
+    piece.hexPos = newHexPos;
+  }
+}
+
+// Move the piece right
+function movePieceRight() {
+  let newHexPos = new Hex(piece.hexPos.q + 1, piece.hexPos.r);
+  if (canPlace(newHexPos, piece.shape)) {
+    piece.hexPos = newHexPos;
+  }
+}
+
+// Rotate the piece 60 degrees clockwise
+function rotatePiece() {
+  let rotatedShape = piece.shape.map(offset => {
+    let newQ = offset.q + offset.r;
+    let newR = -offset.q;
+    return new Hex(newQ, newR);
+  });
+  if (canPlace(piece.hexPos, rotatedShape)) {
+    piece.shape = rotatedShape;
+  }
+}
+
+// Place the piece on the grid and check for game over
+function placePiece() {
+  let gameOver = false;
+  for (let offset of piece.shape) {
+    let absHex = piece.hexPos.add(offset);
+    filled.add(absHex.toString());
+    if (absHex.r < -R) {
+      gameOver = true;
+    }
+  }
+  removeLines();
+  generatePiece();
+  // Speed up the fall after each piece
+  fallInterval = max(minFallInterval, fallInterval - 1);
+  if (gameOver || !canPlace(piece.hexPos, piece.shape)) {
+    console.log("Game Over");
+    noLoop();
+    push();
+    fill(255,0,0);
+    textSize(48);
+    textAlign(CENTER, CENTER);
+    text('Game Over', width/2, height/2);
+    pop();
   }
 }
 
@@ -128,7 +203,7 @@ function removeLines() {
           line.push(current);
           current = current.add(dir2);
         }
-        if (line.length >= 3) {
+        if (line.length >= 4) {
           for (let h of line) {
             toRemove.add(h.toString());
           }
@@ -194,49 +269,27 @@ function draw() {
             drawHexagon(p.x, p.y, size);
           }
         } else {
-          fill(200);
-          noStroke();
+          fill('#B37419');
+          stroke('#5C2E00');
+          strokeWeight(2);
           drawHexagon(p.x, p.y, size);
+          noStroke();
         }
-      }
-    }
-
-    // Draw placement highlight when dragging
-    if (dragging) {
-      let targetHex = pixelToHex(piece.pos);
-      let canPlace = true;
-      for (let offset of piece.shape) {
-        let absHex = targetHex.add(offset);
-        if (!isWithinBounds(absHex) || filled.has(absHex.toString())) {
-          canPlace = false;
-          break;
-        }
-      }
-      for (let offset of piece.shape) {
-        let absHex = targetHex.add(offset);
-        let p = hexToPixel(absHex);
-        if (canPlace) {
-          fill(0, 255, 0, 100); // Green for valid placement
-        } else {
-          fill(255, 0, 0, 100); // Red for invalid placement
-        }
-        noStroke();
-        drawHexagon(p.x, p.y, size);
       }
     }
 
     // Draw current piece
-    for (let i = 0; i < piece.shape.length; i++) {
-      let offset = piece.pixelOffsets[i];
-      let drawPos = p5.Vector.add(piece.pos, offset);
+    for (let offset of piece.shape) {
+      let absHex = piece.hexPos.add(offset);
+      let p = hexToPixel(absHex);
       if (honeyImg) {
         imageMode(CENTER);
-        image(honeyImg, drawPos.x, drawPos.y, imgW, imgH);
+        image(honeyImg, p.x, p.y, imgW, imgH);
         imageMode(CORNER);
       } else {
         fill(255, 204, 0);
         noStroke();
-        drawHexagon(drawPos.x, p.y, size);
+        drawHexagon(p.x, p.y, size);
       }
     }
 
@@ -244,6 +297,13 @@ function draw() {
     textSize(32);
     fill(255);
     text(`Score: ${score}`, 10, 30);
+
+    // Automatic falling
+    if (frameCount - lastFall >= fallInterval) {
+      movePieceDown();
+      lastFall = frameCount;
+    }
+
     lastError = null;
   } catch (err) {
     lastError = err;
@@ -260,71 +320,15 @@ function draw() {
   }
 }
 
-// Handle mouse press to start dragging
-function mousePressed() {
-  try {
-    // Adjusted hitbox for larger hexagons
-    let w = size * Math.sqrt(3);
-    let h = size * 2;
-    for (let i = 0; i < piece.shape.length; i++) {
-      let offset = piece.pixelOffsets[i];
-      let drawPos = p5.Vector.add(piece.pos, offset);
-      if (
-        mouseX >= drawPos.x - w / 2 &&
-        mouseX <= drawPos.x + w / 2 &&
-        mouseY >= drawPos.y - h / 2 &&
-        mouseY <= drawPos.y + h / 2
-      ) {
-        dragging = true;
-        break;
-      }
-    }
-    lastError = null;
-  } catch (err) {
-    lastError = err;
-    console.error('Error in mousePressed:', err);
-  }
-}
-
-// Update piece position while dragging
-function mouseDragged() {
-  try {
-    if (dragging) {
-      piece.pos.set(mouseX, mouseY);
-    }
-    lastError = null;
-  } catch (err) {
-    lastError = err;
-    console.error('Error in mouseDragged:', err);
-  }
-}
-
-// Handle mouse release to place piece
-function mouseReleased() {
-  try {
-    if (dragging) {
-      dragging = false;
-      let targetHex = pixelToHex(piece.pos);
-      let canPlace = true;
-      for (let offset of piece.shape) {
-        let absHex = targetHex.add(offset);
-        if (!isWithinBounds(absHex) || filled.has(absHex.toString())) {
-          canPlace = false;
-          break;
-        }
-      }
-      if (canPlace) {
-        for (let offset of piece.shape) {
-          let absHex = targetHex.add(offset);
-          filled.add(absHex.toString());
-        }
-        removeLines();
-        generatePiece();
-      }
-    }
-    lastError = null;
-  } catch (err) {
-    lastError = err;
-    console.error('Error in mouseReleased:', err);
+// Handle key presses for piece control
+function keyPressed() {
+  if (keyCode === LEFT_ARROW) {
+    movePieceLeft();
+  } else if (keyCode === RIGHT_ARROW) {
+    movePieceRight();
+  } else if (keyCode === UP_ARROW || key === ' ') {
+    rotatePiece();
+  } else if (keyCode === DOWN_ARROW) {
+    movePieceDown();
   }
 }
