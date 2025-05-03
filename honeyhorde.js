@@ -7,7 +7,6 @@ let score = 0;
 let piece; // Current draggable piece
 let dragging = false;
 let bg; // Graphics buffer for background
-let treeBgImg;
 
 // Predefined shapes (polyhexes) as arrays of [q,r] offsets
 const shapes = [
@@ -109,7 +108,7 @@ function removeLines() {
       let hex = new Hex(q, r);
       for (let orient = 0; orient < 3; orient++) {
         let dir1 = new Hex(directions[orient][0][0], directions[orient][0][1]);
-        dir2 = new Hex(directions[orient][1][0], directions[orient][1][1]);
+        let dir2 = new Hex(directions[orient][1][0], directions[orient][1][1]);
         let line = [hex];
         let current = hex.add(dir1);
         while (filled.has(current.toString()) && isWithinBounds(current)) {
@@ -162,16 +161,12 @@ function setup() {
   generatePiece();
 }
 
-function preload() {
-  treeBgImg = loadImage('img/tree-background.png');
-}
-
 // Draw function: render the game
 function draw() {
   background(0);
-  if (treeBgImg) {
-    image(treeBgImg, 0, 0, width, height);
-  }
+  // if (treeBgImg) {
+  //   image(treeBgImg, 0, 0, width, height);
+  // }
   image(bg, 0, 0); // Draw tree bark background
 
   // Draw hexagonal grid (true hexagon)
