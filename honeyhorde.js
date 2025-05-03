@@ -274,7 +274,16 @@ function setup() {
 
   // Initialize graphics buffer and draw the background image
   bg = createGraphics(width, height);
-  if (bgImg) bg.image(bgImg, 0, 0, width, height); // Draw image to buffer, scaled to canvas size
+  if (bgImg) {
+    // Draw at 109% of natural size, centered
+    const scale = 1.22;
+    const imgW = bgImg.width * scale;
+    const imgH = bgImg.height * scale;
+    let x = (width - imgW) / 2;
+    let y = (height - imgH) / 2;
+    bg.clear();
+    bg.image(bgImg, x, y, imgW, imgH);
+  }
 
   // Do not start the game until user clicks Start
   noLoop();
@@ -473,7 +482,14 @@ window.addEventListener('resize', function() {
   // Redraw background buffer if needed
   if (bgImg) {
     bg = createGraphics(width, height);
-    bg.image(bgImg, 0, 0, width, height);
+    // Draw at 109% of natural size, centered
+    const scale = 0.80;
+    const imgW = bgImg.width * scale;
+    const imgH = bgImg.height * scale;
+    let x = (width - imgW) / 2;
+    let y = (height - imgH) / 2;
+    bg.clear();
+    bg.image(bgImg, x, y, imgW, imgH);
   }
 });
 
