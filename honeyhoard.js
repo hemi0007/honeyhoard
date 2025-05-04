@@ -1,3 +1,17 @@
+// HOW TO PLAY:
+//
+// - Use LEFT ARROW or 'A' to move the honeycomb left.
+// - Use RIGHT ARROW or 'D' to move the honeycomb right.
+// - Use DOWN ARROW or 'S' to make the honeycomb fall faster (soft drop). Release to stop soft drop.
+// - Use UP ARROW, 'W', or SPACEBAR to rotate the honeycomb.
+// - Press 'P' to pause or unpause the game at any time.
+// - Press SPACEBAR to unpause if you paused with spacebar (but 'P' is recommended).
+// - Click the Start button to begin playing immediately.
+//
+// The game starts slow and speeds up every 30 seconds. Fill lines to score points. Drag and drop is also supported for moving pieces.
+//
+// Enjoy!
+
 // Global variables
 let R = 5; // Hexagon radius (distance from center to corner)
 let size = 30; // Hexagon radius in pixels
@@ -9,12 +23,13 @@ let lastError = null; // Store last error for display
 let honeyImg;
 let bgImg; // Background image
 let treeBgImg; // Tree background image
-let fallInterval = 45; // Start slower
-let minFallInterval = 8; // Minimum speed
+let fallInterval = 120; // Start much slower (2 seconds per drop at 60fps)
+let minFallInterval = 20; // Minimum speed
+let speedupInterval = 1800; // 30 seconds at 60fps
+let lastSpeedupFrame = 0;
 let lastFall = 0; // Last frame when the piece fell
 let gameOver = false;
 let softDrop = false;
-let paused = false;
 let lastRotateFrame = 0;
 let gameStarted = false;
 
@@ -224,7 +239,21 @@ function restartGame() {
   }
 }
 
-// Remove completed lines and handle chain reactions
+// === UI POLISH START ===
+// Font setup
+let uiFont;
+let clearedHexes = new Set();
+let clearAnimFrame = 0;
+const CLEAR_ANIM_DURATION = 12; // frames for pop/glow
+
+function preload() {
+  treeBgImg = loadImage('img/background.png');
+  honeyImg = loadImage('img/honey.png');
+  bgImg = loadImage('img/background.png');
+  // Use a modern, readable font
+  uiFont = 'Segoe UI, Roboto, Arial, sans-serif';
+}
+
 function removeLines() {
   let removed;
   do {
@@ -254,6 +283,9 @@ function removeLines() {
       }
     }
     if (toRemove.size > 0) {
+      // Store for pop/glow animation
+      clearedHexes = new Set(toRemove);
+      clearAnimFrame = CLEAR_ANIM_DURATION;
       for (let h of toRemove) {
         filled.delete(h);
       }
@@ -264,6 +296,7 @@ function removeLines() {
     }
   } while (removed);
 }
+// === UI POLISH END ===
 
 // Setup function: initialize canvas and assets
 function setup() {
@@ -277,42 +310,55 @@ function setup() {
   let maxGridHeight = height * 0.7; // 70% of height for more margin
   let sizeW = maxGridWidth / (Math.sqrt(3) * (2 * R + 1));
   let sizeH = maxGridHeight / (1.5 * (2 * R + 1));
-  size = Math.min(sizeW, sizeH);
+  size = Math.min(sizeW, sizeH) * 0.85;
 
   // Do not start the game until user clicks Start
   noLoop();
 }
 
-function preload() {
-  treeBgImg = loadImage('img/background.png');
-  honeyImg = loadImage('img/honey.png');
-  bgImg = loadImage('img/background.png'); // Load new background image
-}
-
 // Draw function: render the game
 function draw() {
   if (!gameStarted) {
+    if (bgImg) {
+      image(bgImg, 0, 0, width, height);
+    } else {
+      background(30, 20, 10);
+    }
+    fill('#F8F0DE');
+    textAlign(CENTER, TOP);
+    textSize(54); // Larger title
+    textFont(uiFont);
+    text('How to Play', width / 2, 60);
+
+    textSize(28); // Larger instructions
+    textFont(uiFont);
+    const instructions = [
+      "- LEFT ARROW or 'A': Move left",
+      "- RIGHT ARROW or 'D': Move right",
+      "- DOWN ARROW or 'S': Soft drop (hold to fall faster)",
+      "- UP ARROW, 'W', or SPACEBAR: Rotate",
+      "- P: Pause or unpause",
+      "- SPACEBAR: Unpause if paused with spacebar",
+      "- Drag and drop: Move and place the piece",
+      "- Click Start: Begin playing",
+      '',
+      'The game starts slow and speeds up every 30 seconds.',
+      'Fill lines to score points. Drag and drop is also supported.',
+      '',
+      'Enjoy!'
+    ];
+    let y = 120;
+    for (let line of instructions) {
+      text(line, width / 2, y);
+      y += 40;
+    }
     return;
   }
   try {
-    background(0); // Opaque black background to cover full canvas
-    if (paused) {
-      if (treeBgImg) {
-        // Always fill the width, crop top/bottom if needed
-        let drawWidth = width;
-        let drawHeight = width * (treeBgImg.height / treeBgImg.width);
-        let x = 0;
-        let y = (height - drawHeight) / 2;
-        image(treeBgImg, x, y, drawWidth, drawHeight);
-      }
-    }
-    if (treeBgImg) {
-      // Always fill the width, crop top/bottom if needed
-      let drawWidth = width;
-      let drawHeight = width * (treeBgImg.height / treeBgImg.width);
-      let x = 0;
-      let y = (height - drawHeight) / 2;
-      image(treeBgImg, x, y, drawWidth, drawHeight);
+    if (bgImg) {
+      image(bgImg, 0, 0, width, height);
+    } else {
+      background(0); // Opaque black background to cover full canvas
     }
 
     // Image size to cover hex without gaps
@@ -326,6 +372,16 @@ function draw() {
         if (Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) > R) continue;
         let hex = new Hex(q, r);
         let p = hexToPixel(hex);
+        // Glow/pop effect for cleared hexes
+        if (clearedHexes.has(hex.toString()) && clearAnimFrame > 0) {
+          let t = clearAnimFrame / CLEAR_ANIM_DURATION;
+          push();
+          noFill();
+          stroke(255, 255, 0, 180 * t);
+          strokeWeight(10 * t);
+          drawHexagon(p.x, p.y, size * (1 + 0.2 * t));
+          pop();
+        }
         if (filled.has(hex.toString())) {
           if (honeyImg) {
             imageMode(CENTER);
@@ -342,17 +398,11 @@ function draw() {
           strokeWeight(2);
           drawHexagon(p.x, p.y, size);
           noStroke();
-          // Optional: Make empty hexes transparent to show background
-          // noFill();
-          // stroke('#5C2E00');
-          // strokeWeight(2);
-          // drawHexagon(p.x, p.y, size);
-          // noStroke();
         }
       }
     }
 
-    // Draw current piece
+    // Draw current piece with highlight if dragging
     for (let offset of piece.shape) {
       let absHex = piece.hexPos.add(offset);
       let p = hexToPixel(absHex);
@@ -365,26 +415,34 @@ function draw() {
         noStroke();
         drawHexagon(p.x, p.y, size);
       }
+      // Highlight if dragging
+      if (dragging) {
+        push();
+        noFill();
+        stroke(0, 200, 255, 180); // cyan glow
+        strokeWeight(7);
+        drawHexagon(p.x, p.y, size * 1.08);
+        pop();
+      }
     }
 
     // Draw score as a button
     const scoreText = `Score: ${score}`;
-    textSize(32);
+    textSize(44); // Larger score
+    textFont(uiFont);
     const paddingX = 32;
     const paddingY = 12;
     const btnW = textWidth(scoreText) + paddingX * 2;
-    const btnH = 48;
+    const btnH = 60;
     const btnX = width / 2 - btnW / 2;
     const btnY = 64;
-    // Draw button background
     push();
     noStroke();
-    fill(40, 30, 10, 220); // dark, semi-transparent shadow
-    rect(btnX + 3, btnY + 4, btnW, btnH, 18); // shadow
-    fill('#D68C1F'); // Play button yellow
+    fill(40, 30, 10, 220);
+    rect(btnX + 3, btnY + 4, btnW, btnH, 18);
+    fill('#D68C1F');
     rect(btnX, btnY, btnW, btnH, 18);
     pop();
-    // Draw score text
     fill('#F8F0DE');
     textAlign(CENTER, CENTER);
     text(scoreText, width / 2, btnY + btnH / 2);
@@ -394,6 +452,18 @@ function draw() {
     if (!dragging && frameCount - lastFall >= currentInterval) {
       movePieceDown();
       lastFall = frameCount;
+    }
+
+    // Progressive speedup every 30 seconds
+    if (frameCount - lastSpeedupFrame >= speedupInterval && fallInterval > minFallInterval) {
+      fallInterval = Math.max(minFallInterval, fallInterval - 10); // Decrease by 10 every 30s
+      lastSpeedupFrame = frameCount;
+    }
+
+    // Animate pop/glow
+    if (clearAnimFrame > 0) {
+      clearAnimFrame--;
+      if (clearAnimFrame === 0) clearedHexes.clear();
     }
 
     lastError = null;
@@ -415,42 +485,26 @@ function draw() {
 // Handle key presses for piece control
 function keyPressed() {
   if (gameOver) return;
-  if (paused) {
-    if (keyCode === 32) { // Spacebar to unpause
-      paused = false;
-      loop();
-    }
-    return;
-  }
-  if (key === 'p' || key === 'P') {
-    paused = !paused;
-    if (paused) {
-      noLoop();
-    } else {
-      loop();
-    }
-    return;
-  }
-  if (keyCode === LEFT_ARROW) {
+  if (keyCode === LEFT_ARROW || key === 'a') {
     movePieceLeft();
-  } else if (keyCode === RIGHT_ARROW) {
+  } else if (keyCode === RIGHT_ARROW || key === 'd') {
     movePieceRight();
-  } else if ((keyCode === UP_ARROW || keyCode === 32) && frameCount - lastRotateFrame > 6) {
+  } else if ((keyCode === UP_ARROW || key === 'w' || keyCode === 32) && frameCount - lastRotateFrame > 6) {
     rotatePiece();
     lastRotateFrame = frameCount;
-  } else if (keyCode === DOWN_ARROW) {
+  } else if (keyCode === DOWN_ARROW || key === 's') {
     softDrop = true;
   }
 }
 
 function keyReleased() {
-  if (keyCode === DOWN_ARROW) {
+  if (keyCode === DOWN_ARROW || key === 's' || key === 'S') {
     softDrop = false;
   }
 }
 
 function mousePressed() {
-  if (gameOver || paused) return;
+  if (gameOver) return;
   for (let offset of piece.shape) {
     let absHex = piece.hexPos.add(offset);
     let p = hexToPixel(absHex);
@@ -468,7 +522,7 @@ function mousePressed() {
 }
 
 function mouseDragged() {
-  if (!dragging || gameOver || paused) return;
+  if (!dragging || gameOver) return;
   let px = createVector(mouseX - dragOffset.x, mouseY - dragOffset.y);
   let hex = pixelToHex(px);
   if (canPlace(hex, piece.shape)) {
@@ -481,7 +535,7 @@ function mouseDragged() {
 }
 
 function mouseReleased() {
-  if (!dragging || gameOver || paused) return;
+  if (!dragging || gameOver) return;
   dragging = false;
   // Only place the piece if it was actually dragged
   if (draggedFarEnough && canPlace(piece.hexPos, piece.shape)) {
@@ -502,18 +556,17 @@ function windowResized() {
   let maxGridHeight = height * 0.7;
   let sizeW = maxGridWidth / (Math.sqrt(3) * (2 * R + 1));
   let sizeH = maxGridHeight / (1.5 * (2 * R + 1));
-  size = Math.min(sizeW, sizeH);
+  size = Math.min(sizeW, sizeH) * 0.85;
 }
 
 function startGame() {
   gameStarted = true;
   filled = new Set();
   score = 0;
-  fallInterval = 45;
+  fallInterval = 120;
   lastFall = 0;
   gameOver = false;
-  paused = false; // Do not pause on start
-  loop();
+  loop(); // Start the draw loop immediately
   generatePiece();
 }
 
