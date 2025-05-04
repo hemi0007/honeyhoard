@@ -32,6 +32,9 @@ let gameOver = false;
 let softDrop = false;
 let lastRotateFrame = 0;
 let gameStarted = false;
+let bearHoneyImg;
+let bee2Img;
+let bee1Img;
 
 // Drag-and-drop state
 let dragging = false;
@@ -122,6 +125,55 @@ function drawHexagon(x, y, radius) {
     vertex(vx, vy);
   }
   endShape(CLOSE);
+}
+
+// Draw a hexagon with a radial gradient fill and a soft drop shadow
+function drawGradientHexagonWithShadow(x, y, radius, colorCenter, colorEdge) {
+  // Draw soft shadow
+  push();
+  noStroke();
+  fill(40, 20, 0, 60); // Soft brown shadow, semi-transparent
+  drawHexagon(x + radius * 0.12, y + radius * 0.18, radius * 1.08);
+  pop();
+  // Draw the gradient hexagon
+  drawGradientHexagon(x, y, radius, colorCenter, colorEdge);
+  // Draw gold border (thicker)
+  push();
+  stroke(255, 215, 80); // Gold
+  strokeWeight(5);
+  noFill();
+  drawHexagon(x, y, radius);
+  pop();
+  // Draw dark brown outer border (thinner)
+  push();
+  stroke(92, 46, 0); // Dark brown
+  strokeWeight(2);
+  noFill();
+  drawHexagon(x, y, radius * 1.04);
+  pop();
+}
+
+// Draw a hexagon with a radial gradient fill
+function drawGradientHexagon(x, y, radius, colorCenter, colorEdge) {
+  let gfx = createGraphics(radius * 2, radius * 2);
+  gfx.noStroke();
+  for (let r = radius; r > 0; --r) {
+    let inter = map(r, 0, radius, 0, 1);
+    let c = lerpColor(colorCenter, colorEdge, inter);
+    gfx.fill(c);
+    gfx.push();
+    gfx.translate(radius, radius);
+    gfx.beginShape();
+    for (let i = 0; i < 6; i++) {
+      let angle = PI / 3 * i + PI / 6;
+      let vx = r * cos(angle);
+      let vy = r * sin(angle);
+      gfx.vertex(vx, vy);
+    }
+    gfx.endShape(CLOSE);
+    gfx.pop();
+  }
+  image(gfx, x - radius, y - radius);
 }
 
 // Generate a new piece at the top of the grid
@@ -250,6 +302,9 @@ function preload() {
   treeBgImg = loadImage('img/background.png');
   honeyImg = loadImage('img/honey.png');
   bgImg = loadImage('img/background.png');
+  bearHoneyImg = loadImage('img/bearhoney.png');
+  bee2Img = loadImage('img/bee2.png');
+  bee1Img = loadImage('img/bee1.png');
   // Use a modern, readable font
   uiFont = 'Segoe UI, Roboto, Arial, sans-serif';
 }
@@ -388,9 +443,15 @@ function draw() {
             image(honeyImg, p.x, p.y, imgW, imgH);
             imageMode(CORNER);
           } else {
-            fill(255, 204, 0);
-            noStroke();
-            drawHexagon(p.x, p.y, size);
+            let scale = 1.0;
+            if (isMouseOverHex(p, size) && !gameOver) {
+              scale = 1.12;
+            }
+            drawGradientHexagonWithShadow(
+              p.x, p.y, size * scale,
+              color(255, 230, 80, 255),   // Center: bright honey
+              color(210, 140, 0, 255)     // Edge: deep honey/gold
+            );
           }
         } else {
           fill('#B37419');
@@ -411,9 +472,18 @@ function draw() {
         image(honeyImg, p.x, p.y, imgW, imgH);
         imageMode(CORNER);
       } else {
-        fill(255, 204, 0);
-        noStroke();
-        drawHexagon(p.x, p.y, size);
+        let scale = 1.0;
+        if (isMouseOverHex(p, size) && !gameOver) {
+          scale = 1.12;
+        }
+        if (dragging && absHex.toString() === dragStartHex?.toString()) {
+          scale = 1.18;
+        }
+        drawGradientHexagonWithShadow(
+          p.x, p.y, size * scale,
+          color(255, 230, 80, 255),   // Center: bright honey
+          color(210, 140, 0, 255)     // Edge: deep honey/gold
+        );
       }
       // Highlight if dragging
       if (dragging) {
@@ -446,6 +516,59 @@ function draw() {
     fill('#F8F0DE');
     textAlign(CENTER, CENTER);
     text(scoreText, width / 2, btnY + btnH / 2);
+
+    // Draw bearhoney.png at bottom right, fixed
+    if (bearHoneyImg) {
+      const marginX = 350; // move more to the left
+      const marginY = 80; // move more up
+      const bearW = Math.min(width, height) * 0.22 * 1.3; // enlarge by 30%
+      const bearH = bearW * (bearHoneyImg.height / bearHoneyImg.width);
+      image(
+        bearHoneyImg,
+        width - bearW - marginX,
+        height - bearH - marginY,
+        bearW,
+        bearH
+      );
+    }
+
+    // Draw three bee2.png images on the left side, scattered and animated
+    if (bee2Img) {
+      const beeW = Math.min(width, height) * 0.10;
+      const beeH = beeW * (bee2Img.height / bee2Img.width);
+      // Animated scattered positions (x, y) for each bee
+      const beePositions = [
+        { x: 200, y: height * 0.18 + 18 * Math.sin(frameCount * 0.04) },
+        { x: 350, y: height * 0.38 + 22 * Math.sin(frameCount * 0.05 + 1) },
+        { x: 400, y: height * 0.65 + 16 * Math.sin(frameCount * 0.06 + 2) }
+      ];
+      for (let i = 0; i < 3; i++) {
+        const pos = beePositions[i];
+        image(
+          bee2Img,
+          pos.x,
+          pos.y,
+          beeW,
+          beeH
+        );
+      }
+    }
+
+    // Draw one bee1.png image on the right side, animated
+    if (bee1Img) {
+      const beeW = Math.min(width, height) * 0.10;
+      const beeH = beeW * (bee1Img.height / bee1Img.width);
+      const marginX = 425;
+      const y = height * 0.45 + 20 * Math.sin(frameCount * 0.045 + 3);
+      const x = width - beeW - marginX + 12 * Math.cos(frameCount * 0.03 + 2);
+      image(
+        bee1Img,
+        x,
+        y,
+        beeW,
+        beeH
+      );
+    }
 
     // Automatic falling (soft drop if down arrow held)
     let currentInterval = softDrop ? 6 : fallInterval;
@@ -614,3 +737,8 @@ window.addEventListener('DOMContentLoaded', () => {
     shareBtn.addEventListener('click', shareScore);
   }
 });
+
+// Utility: check if mouse is over a hex center
+function isMouseOverHex(p, size) {
+  return dist(mouseX, mouseY, p.x, p.y) < size * 0.95;
+}
