@@ -23,8 +23,8 @@ let lastError = null; // Store last error for display
 let honeyImg;
 let bgImg; // Background image
 let treeBgImg; // Tree background image
-let fallInterval = 120; // Start much slower (2 seconds per drop at 60fps)
-let minFallInterval = 20; // Minimum speed
+let fallInterval = 150; // Start at 2.5 seconds per drop (60fps)
+let minFallInterval = 20; // Minimum speed (frames per drop)
 let speedupInterval = 1800; // 30 seconds at 60fps
 let lastSpeedupFrame = 0;
 let lastFall = 0; // Last frame when the piece fell
@@ -183,9 +183,11 @@ function generatePiece() {
   try {
     const shapeIndex = floor(random(shapes.length));
     const shape = shapes[shapeIndex].map(([dq, dr]) => new Hex(dq, dr));
+    const startHex = new Hex(2, -R); // or your spawn logic
     piece = {
-      hexPos: new Hex(2, -R), // Spawn two hexes to the right at the top row
-      shape: shape
+      hexPos: startHex,
+      shape: shape,
+      pixelPos: hexToPixel(startHex) // NEW: track pixel position
     };
     lastError = null;
   } catch (err) {
@@ -207,8 +209,15 @@ function canPlace(hexPos, shape) {
 
 // Move the piece down by one row
 function movePieceDown() {
-  let newHexPos = new Hex(piece.hexPos.q, piece.hexPos.r + 1);
+  // Move the piece's pixel position straight down by one hex row
+  let newPixelPos = piece.pixelPos.copy();
+  newPixelPos.y += size * 1.5; // vertical distance between hex rows (pointy-top)
+
+  // Snap to nearest hex
+  let newHexPos = pixelToHex(newPixelPos);
+
   if (canPlace(newHexPos, piece.shape)) {
+    piece.pixelPos = newPixelPos;
     piece.hexPos = newHexPos;
   } else {
     placePiece();
@@ -220,6 +229,7 @@ function movePieceLeft() {
   let newHexPos = new Hex(piece.hexPos.q - 1, piece.hexPos.r);
   if (canPlace(newHexPos, piece.shape)) {
     piece.hexPos = newHexPos;
+    piece.pixelPos = hexToPixel(newHexPos);
   }
 }
 
@@ -228,6 +238,7 @@ function movePieceRight() {
   let newHexPos = new Hex(piece.hexPos.q + 1, piece.hexPos.r);
   if (canPlace(newHexPos, piece.shape)) {
     piece.hexPos = newHexPos;
+    piece.pixelPos = hexToPixel(newHexPos);
   }
 }
 
@@ -240,6 +251,7 @@ function rotatePiece() {
   });
   if (canPlace(piece.hexPos, rotatedShape)) {
     piece.shape = rotatedShape;
+    // pixelPos stays the same, hexPos stays the same
   }
 }
 
@@ -282,11 +294,12 @@ function showGameOver() {
 function restartGame() {
   filled = new Set();
   score = 0;
-  fallInterval = 45;
+  fallInterval = 150;
   lastFall = 0;
   gameOver = false;
   loop();
   generatePiece();
+  lastSpeedupFrame = frameCount;
   if (typeof document !== 'undefined') {
     const overlay = document.getElementById('gameOverOverlay');
     if (overlay) {
@@ -553,7 +566,7 @@ function draw() {
     if (bearHoneyImg) {
       const marginX = 350; // move more to the left
       const marginY = 80; // move more up
-      const bearW = Math.min(width, height) * 0.22 * 1.3; // enlarge by 30%
+      const bearW = Math.min(width, height) * 0.22 * 1.3 * 1.2; // enlarge by 30% then 20% more
       const bearH = bearW * (bearHoneyImg.height / bearHoneyImg.width);
       image(
         bearHoneyImg,
@@ -718,11 +731,12 @@ function startGame() {
   gameStarted = true;
   filled = new Set();
   score = 0;
-  fallInterval = 120;
+  fallInterval = 150;
   lastFall = 0;
   gameOver = false;
   loop(); // Start the draw loop immediately
   generatePiece();
+  lastSpeedupFrame = frameCount;
 }
 
 window.startGame = startGame;
