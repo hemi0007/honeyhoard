@@ -305,11 +305,6 @@ function draw() {
         let y = (height - drawHeight) / 2;
         image(treeBgImg, x, y, drawWidth, drawHeight);
       }
-      fill(255, 255, 0);
-      textSize(48);
-      textAlign(CENTER, CENTER);
-      text('Paused', width / 2, height / 2);
-      return;
     }
     if (treeBgImg) {
       // Always fill the width, crop top/bottom if needed
@@ -420,6 +415,13 @@ function draw() {
 // Handle key presses for piece control
 function keyPressed() {
   if (gameOver) return;
+  if (paused) {
+    if (keyCode === 32) { // Spacebar to unpause
+      paused = false;
+      loop();
+    }
+    return;
+  }
   if (key === 'p' || key === 'P') {
     paused = !paused;
     if (paused) {
@@ -510,7 +512,7 @@ function startGame() {
   fallInterval = 45;
   lastFall = 0;
   gameOver = false;
-  paused = false;
+  paused = false; // Do not pause on start
   loop();
   generatePiece();
 }
