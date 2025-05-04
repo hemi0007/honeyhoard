@@ -599,3 +599,18 @@ function drawHexagonOnGfx(gfx, x, y, radius) {
   }
   gfx.endShape(gfx.CLOSE);
 }
+
+const GAME_URL = "https://hemi0007.github.io/honeyhoard/";
+
+function shareScore() {
+  let shareText = `🐝 I scored ${score} in Honey Hoard! 🍯 Can you beat me?`;
+  const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
+  window.open(tweetUrl, '_blank');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const shareBtn = document.getElementById('shareScoreBtn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', shareScore);
+  }
+});
