@@ -302,6 +302,9 @@ let uiFont;
 let clearedHexes = new Set();
 let clearAnimFrame = 0;
 const CLEAR_ANIM_DURATION = 12; // frames for pop/glow
+let scoreAnimFrame = 0;
+const SCORE_ANIM_DURATION = 24; // frames (0.4s at 60fps)
+let lastScore = 0;
 
 function preload() {
   treeBgImg = loadImage('img/background.png');
@@ -357,7 +360,11 @@ function removeLines() {
       for (let h of toRemove) {
         filled.delete(h);
       }
+      let previousScore = score;
       score += toRemove.size * 10;
+      if (score > previousScore) {
+        scoreAnimFrame = SCORE_ANIM_DURATION;
+      }
       removed = true;
     } else {
       removed = false;
@@ -528,7 +535,19 @@ function draw() {
     pop();
     fill('#F8F0DE');
     textAlign(CENTER, CENTER);
-    text(scoreText, width / 2, btnY + btnH / 2);
+    if (scoreAnimFrame > 0) {
+      let animScale = 1 + 0.25 * (scoreAnimFrame / SCORE_ANIM_DURATION);
+      let animAlpha = 255 * (0.5 + 0.5 * (scoreAnimFrame / SCORE_ANIM_DURATION));
+      push();
+      translate(width / 2, btnY + btnH / 2);
+      scale(animScale);
+      fill(255, 255, 180, animAlpha);
+      text(scoreText, 0, 0);
+      pop();
+      scoreAnimFrame--;
+    } else {
+      text(scoreText, width / 2, btnY + btnH / 2);
+    }
 
     // Draw bearhoney.png at bottom right, fixed
     if (bearHoneyImg) {
