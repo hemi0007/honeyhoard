@@ -35,6 +35,8 @@ let gameStarted = false;
 let bearHoneyImg;
 let bee2Img;
 let bee1Img;
+let gameOverSound;
+let streakSound;
 
 // Drag-and-drop state
 let dragging = false;
@@ -263,6 +265,9 @@ function placePiece() {
 
 function showGameOver() {
   gameOver = true;
+  if (gameOverSound && gameOverSound.isLoaded()) {
+    gameOverSound.play();
+  }
   if (typeof document !== 'undefined') {
     const scoreElem = document.getElementById('finalScore');
     if (scoreElem) scoreElem.textContent = `Your Score: ${score}`;
@@ -305,6 +310,8 @@ function preload() {
   bearHoneyImg = loadImage('img/bearhoney.png');
   bee2Img = loadImage('img/bee2.png');
   bee1Img = loadImage('img/bee1.png');
+  gameOverSound = loadSound('sounds/gameover.mp3');
+  streakSound = loadSound('sounds/streak.mp3');
   // Use a modern, readable font
   uiFont = 'Segoe UI, Roboto, Arial, sans-serif';
 }
@@ -335,6 +342,12 @@ function removeLines() {
             toRemove.add(h.toString());
           }
         }
+      }
+    }
+    if (toRemove.size >= 5) {
+      if (streakSound && streakSound.isLoaded()) {
+        streakSound.stop();
+        streakSound.play();
       }
     }
     if (toRemove.size > 0) {
