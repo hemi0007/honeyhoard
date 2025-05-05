@@ -587,7 +587,7 @@ function draw() {
         { x: 350, y: height * 0.38 + 22 * Math.sin(frameCount * 0.05 + 1) },
         { x: 400, y: height * 0.65 + 16 * Math.sin(frameCount * 0.06 + 2) }
       ];
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 2; i++) {
         const pos = beePositions[i];
         image(
           bee2Img,
