@@ -17,8 +17,8 @@
             background: url('/img/background.png') no-repeat 0 0 fixed;      /* rounded corners */
             top: 0;
             left: 0;
-            width: 100%; /* Full viewport width */
-            height: 100%; /* Full viewport height */
+            width: 100vw; /* Full viewport width */
+            height: 100vh; /* Full viewport height */
             background: transparent; /* Transparent canvas background */
             background-size: cover;
             background-position: center;
@@ -72,6 +72,38 @@
         }
         .gameover-btn:hover {
             background: #b06c13;
+        }
+        /* Responsive mobile improvements */
+        @media (max-width: 600px) {
+          body, canvas {
+            background-size: cover !important;
+            background-position: center center !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            min-width: 100vw !important;
+            min-height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+          }
+          #gameOverOverlay > div,
+          #usernameModal > div {
+            padding: 18px 4vw 18px 4vw !important;
+            min-width: 0 !important;
+            max-width: 98vw !important;
+            border-radius: 12px !important;
+          }
+          .gameover-btn {
+            font-size: 1.1em !important;
+            width: 90vw !important;
+            max-width: 320px !important;
+            padding: 10px 0 !important;
+          }
+          #hamburgerMenu {
+            top: 8px !important;
+            right: 8px !important;
+            width: 36px !important;
+            height: 36px !important;
+          }
         }
     </style>
 </head>
@@ -127,7 +159,7 @@
       <div style="background:#fff;padding:36px 40px 32px 40px;border-radius:18px;box-shadow:0 0 32px #000a;min-width:320px;max-width:90vw;display:flex;flex-direction:column;align-items:center;position:relative;">
         <button id="closeUsernameModalBtn" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:1.8em;color:#a0522d;cursor:pointer;">&times;</button>
         <h2 style="color:#a0522d;margin-bottom:18px;">Submit to Leaderboard</h2>
-        <input id="usernameInput" type="text" maxlength="5" placeholder="Enter your name" style="font-size:1.2em;padding:10px 18px;border-radius:8px;border:1px solid #ccc;margin-bottom:10px;width:220px;box-sizing:border-box;">
+        <input id="usernameInput" type="text" maxlength="10" placeholder="Enter your name" style="font-size:1.2em;padding:10px 18px;border-radius:8px;border:1px solid #ccc;margin-bottom:10px;width:220px;box-sizing:border-box;">
         <div id="usernameError" style="color:#c00;font-size:1em;height:1.5em;margin-bottom:10px;"></div>
         <button id="submitUsernameBtn" style="font-size:1.1em;padding:10px 28px;border-radius:8px;border:none;background:#D68C1F;color:#fff;font-weight:bold;cursor:pointer;box-shadow:0 2px 8px #0002;">Submit</button>
       </div>

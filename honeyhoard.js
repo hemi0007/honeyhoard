@@ -289,14 +289,7 @@ const SUPABASE_URL = 'https://ikfbshpayzrrqzcppfez.supabase.co'; // TODO: Replac
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrZmJzaHBheXpycnF6Y3BwZmV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzE5NDIsImV4cCI6MjA2MjA0Nzk0Mn0.748o5jqh5Flo5_Hz_o7IqBllbc4olKT3OBU0dU8Bvwg'; // TODO: Replace with your anon key
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Show leaderboard after submitting score
-// (Removed to prevent leaderboard from appearing outside the popup)
-// async function showLeaderboard() {
-//   ...
-// }
-
-// === SUPABASE LEADERBOARD INTEGRATION END ===
-
+// Show leaderboard in the game over popup only
 async function showLeaderboardInGameOver() {
   const { data, error } = await supabase
     .from('leaderboard')
@@ -641,10 +634,17 @@ function draw() {
 
     // Draw bearhoney.png at bottom right, fixed
     if (bearHoneyImg) {
-      const marginX = 350; // move more to the left
-      const marginY = 80; // move more up
-      const bearW = Math.min(width, height) * 0.22 * 1.3 * 1.2; // enlarge by 30% then 20% more
-      const bearH = bearW * (bearHoneyImg.height / bearHoneyImg.width);
+      let marginX, marginY, bearW, bearH;
+      if (windowWidth < 700) { // Mobile adjustments: move bear further in
+        marginX = 60; // positive margin to move in
+        marginY = 10;
+        bearW = Math.min(width, height) * 0.22 * 0.9;
+      } else {
+        marginX = 350;
+        marginY = 80;
+        bearW = Math.min(width, height) * 0.22 * 1.3 * 1.2;
+      }
+      bearH = bearW * (bearHoneyImg.height / bearHoneyImg.width);
       image(
         bearHoneyImg,
         width - bearW - marginX,
@@ -656,14 +656,24 @@ function draw() {
 
     // Draw three bee2.png images on the left side, scattered and animated
     if (bee2Img) {
-      const beeW = Math.min(width, height) * 0.10;
-      const beeH = beeW * (bee2Img.height / bee2Img.width);
-      // Animated scattered positions (x, y) for each bee
-      const beePositions = [
-        { x: 200, y: height * 0.18 + 18 * Math.sin(frameCount * 0.04) },
-        { x: 350, y: height * 0.38 + 22 * Math.sin(frameCount * 0.05 + 1) },
-        { x: 400, y: height * 0.65 + 16 * Math.sin(frameCount * 0.06 + 2) }
-      ];
+      let beeW, beeH, beePositions;
+      if (windowWidth < 700) { // Mobile adjustments: move bees further in
+        beeW = Math.min(width, height) * 0.08;
+        beeH = beeW * (bee2Img.height / bee2Img.width);
+        beePositions = [
+          { x: 60, y: height * 0.12 + 10 * Math.sin(frameCount * 0.04) },
+          { x: 100, y: height * 0.28 + 12 * Math.sin(frameCount * 0.05 + 1) },
+          { x: 120, y: height * 0.55 + 8 * Math.sin(frameCount * 0.06 + 2) }
+        ];
+      } else {
+        beeW = Math.min(width, height) * 0.10;
+        beeH = beeW * (bee2Img.height / bee2Img.width);
+        beePositions = [
+          { x: 200, y: height * 0.18 + 18 * Math.sin(frameCount * 0.04) },
+          { x: 350, y: height * 0.38 + 22 * Math.sin(frameCount * 0.05 + 1) },
+          { x: 400, y: height * 0.65 + 16 * Math.sin(frameCount * 0.06 + 2) }
+        ];
+      }
       for (let i = 0; i < 2; i++) {
         const pos = beePositions[i];
         image(
@@ -678,11 +688,20 @@ function draw() {
 
     // Draw one bee1.png image on the right side, animated
     if (bee1Img) {
-      const beeW = Math.min(width, height) * 0.10;
-      const beeH = beeW * (bee1Img.height / bee1Img.width);
-      const marginX = 425;
-      const y = height * 0.45 + 20 * Math.sin(frameCount * 0.045 + 3);
-      const x = width - beeW - marginX + 12 * Math.cos(frameCount * 0.03 + 2);
+      let beeW, beeH, marginX, y, x;
+      if (windowWidth < 700) { // Mobile adjustments: move bee further in
+        beeW = Math.min(width, height) * 0.08;
+        beeH = beeW * (bee1Img.height / bee1Img.width);
+        marginX = 60; // positive margin to move in
+        y = height * 0.45 + 10 * Math.sin(frameCount * 0.045 + 3);
+        x = width - beeW - marginX + 6 * Math.cos(frameCount * 0.03 + 2);
+      } else {
+        beeW = Math.min(width, height) * 0.10;
+        beeH = beeW * (bee1Img.height / bee1Img.width);
+        marginX = 425;
+        y = height * 0.45 + 20 * Math.sin(frameCount * 0.045 + 3);
+        x = width - beeW - marginX + 12 * Math.cos(frameCount * 0.03 + 2);
+      }
       image(
         bee1Img,
         x,
@@ -751,7 +770,7 @@ function keyReleased() {
   }
 }
 
-function mousePressed(event) {
+function mousePressed() {
   if (gameOver) return;
   for (let offset of piece.shape) {
     let absHex = piece.hexPos.add(offset);
@@ -900,6 +919,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     // Hide modal and show leaderboard
     usernameModal.style.display = 'none';
+    showLeaderboardInGameOver();
   }
 
   if (submitUsernameBtn) {
@@ -911,11 +931,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-
-// Utility: check if mouse is over a hex center
-function isMouseOverHex(p, size) {
-  return dist(mouseX, mouseY, p.x, p.y) < size * 0.95;
-}
 
 // Listen for right-click (contextmenu) to rotate while dragging
 window.addEventListener('contextmenu', function(e) {
@@ -936,3 +951,8 @@ window.addEventListener('touchstart', function(e) {
     e.preventDefault();
   }
 }, { passive: false });
+
+// Utility: check if mouse is over a hex center
+function isMouseOverHex(p, size) {
+  return dist(mouseX, mouseY, p.x, p.y) < size * 0.95;
+}
