@@ -38,6 +38,7 @@ let bee1Img;
 let gameOverSound;
 let streakSound;
 let soundVolume = 1.0; // Global sound volume (0.0 to 1.0)
+let allSounds = [];
 
 // Drag-and-drop state
 let dragging = false;
@@ -328,15 +329,21 @@ function preload() {
   bearHoneyImg = loadImage('img/bearhoney.png');
   bee2Img = loadImage('img/bee2.png');
   bee1Img = loadImage('img/bee1.png');
-  gameOverSound = loadSound('sounds/gameover.mp3');
-  streakSound = loadSound('sounds/streak.mp3');
+  gameOverSound = loadSound('sounds/gameover.mp3', (snd) => {
+    snd.setVolume(soundVolume);
+  });
+  streakSound = loadSound('sounds/streak.mp3', (snd) => {
+    snd.setVolume(soundVolume);
+  });
+  allSounds = [gameOverSound, streakSound];
   // Use a modern, readable font
   uiFont = 'Segoe UI, Roboto, Arial, sans-serif';
 }
 
 function setAllSoundVolumes() {
-  if (gameOverSound) gameOverSound.setVolume(soundVolume);
-  if (streakSound) streakSound.setVolume(soundVolume);
+  for (const snd of allSounds) {
+    if (snd) snd.setVolume(soundVolume);
+  }
 }
 
 function removeLines() {
@@ -790,8 +797,6 @@ window.addEventListener('DOMContentLoaded', () => {
   if (shareBtn) {
     shareBtn.addEventListener('click', shareScore);
   }
-  // Set initial sound volume when sounds are loaded
-  setTimeout(setAllSoundVolumes, 500); // Delay to ensure sounds are loaded
   const slider = document.getElementById('soundVolumeSlider');
   const label = document.getElementById('soundVolumeLabel');
   if (slider && label) {
