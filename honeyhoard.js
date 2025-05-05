@@ -37,6 +37,7 @@ let bee2Img;
 let bee1Img;
 let gameOverSound;
 let streakSound;
+let soundVolume = 1.0; // Global sound volume (0.0 to 1.0)
 
 // Drag-and-drop state
 let dragging = false;
@@ -278,6 +279,7 @@ function placePiece() {
 function showGameOver() {
   gameOver = true;
   if (gameOverSound && gameOverSound.isLoaded()) {
+    gameOverSound.setVolume(soundVolume);
     gameOverSound.play();
   }
   if (typeof document !== 'undefined') {
@@ -332,6 +334,11 @@ function preload() {
   uiFont = 'Segoe UI, Roboto, Arial, sans-serif';
 }
 
+function setAllSoundVolumes() {
+  if (gameOverSound) gameOverSound.setVolume(soundVolume);
+  if (streakSound) streakSound.setVolume(soundVolume);
+}
+
 function removeLines() {
   let removed;
   do {
@@ -363,6 +370,7 @@ function removeLines() {
     if (toRemove.size >= 5) {
       if (streakSound && streakSound.isLoaded()) {
         streakSound.stop();
+        streakSound.setVolume(soundVolume);
         streakSound.play();
       }
     }
@@ -781,6 +789,19 @@ window.addEventListener('DOMContentLoaded', () => {
   const shareBtn = document.getElementById('shareScoreBtn');
   if (shareBtn) {
     shareBtn.addEventListener('click', shareScore);
+  }
+  // Set initial sound volume when sounds are loaded
+  setTimeout(setAllSoundVolumes, 500); // Delay to ensure sounds are loaded
+  const slider = document.getElementById('soundVolumeSlider');
+  const label = document.getElementById('soundVolumeLabel');
+  if (slider && label) {
+    slider.value = Math.round(soundVolume * 100);
+    label.textContent = `${slider.value}%`;
+    slider.addEventListener('input', () => {
+      soundVolume = slider.value / 100;
+      label.textContent = `${slider.value}%`;
+      setAllSoundVolumes();
+    });
   }
 });
 

@@ -66,9 +66,12 @@
         <span style="display:block;height:4px;width:100%;background:#D68C1F;border-radius:2px;"></span>
       </div>
     </div>
-    <div id="howToPlayModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);z-index:30;align-items:center;justify-content:center;">
-      <div style="background:#fff;padding:36px 48px;border-radius:18px;max-width:90vw;max-height:90vh;overflow:auto;box-shadow:0 0 24px #000a;position:relative;">
-        <button id="closeHowToPlay" style="position:absolute;top:12px;right:16px;font-size:2em;background:none;border:none;cursor:pointer;color:#a0522d;">&times;</button>
+    <div id="hamburgerDropdown" style="display:none;position:absolute;top:68px;right:32px;z-index:40;background:#fff;border-radius:16px;box-shadow:0 4px 24px #0003;min-width:340px;max-width:90vw;padding:0;overflow:hidden;">
+      <div style="display:flex;gap:12px;padding:12px 12px 0 12px;">
+        <button id="howToPlayTabBtn" style="font-size:1.1em;padding:8px 18px;border-radius:8px;border:none;background:#D68C1F;color:#fff;font-weight:bold;cursor:pointer;">How to Play</button>
+        <button id="gameSettingsTabBtn" style="font-size:1.1em;padding:8px 18px;border-radius:8px;border:none;background:#eee;color:#a0522d;font-weight:bold;cursor:pointer;">Game Settings</button>
+      </div>
+      <div id="howToPlayTab" style="padding:0 24px 18px 24px;">
         <h2 style="color:#a0522d;">How to Play</h2>
         <ul style="font-size:1.2em;color:#222;line-height:1.6;max-width:500px;">
           <li>Move the falling honeycomb piece left/right with the <b>←</b> and <b>→</b> arrow keys or <b>a</b> key and <b>d</b> key.</li>
@@ -77,6 +80,13 @@
           <li>Fill lines of <b>5 or more</b> honeycombs in a row to clear them and score points.</li>
           <li>The game ends if a piece reaches the top of the board.</li>
         </ul>
+      </div>
+      <div id="gameSettingsTab" style="display:none;padding:0 24px 18px 24px;">
+        <h2 style="color:#a0522d;">Game Settings</h2>
+        <div style="margin-top:18px;">
+          <label for="soundVolumeSlider" style="font-size:1.1em;color:#a0522d;font-weight:bold;">Sound Volume: <span id="soundVolumeLabel">100%</span></label><br>
+          <input type="range" id="soundVolumeSlider" min="0" max="100" value="100" style="width:220px;">
+        </div>
       </div>
     </div>
     <div id="gameOverOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.7); z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center;">
@@ -101,15 +111,62 @@
         if (typeof startGame === 'function') startGame();
         document.getElementById('landingPage').style.display = 'none';
       };
-      document.getElementById('hamburgerMenu').onclick = function() {
-        document.getElementById('howToPlayModal').style.display = 'flex';
+
+      // Hamburger dropdown logic
+      const hamburgerMenu = document.getElementById('hamburgerMenu');
+      const dropdown = document.getElementById('hamburgerDropdown');
+      const howToPlayTabBtn = document.getElementById('howToPlayTabBtn');
+      const gameSettingsTabBtn = document.getElementById('gameSettingsTabBtn');
+      const howToPlayTab = document.getElementById('howToPlayTab');
+      const gameSettingsTab = document.getElementById('gameSettingsTab');
+
+      function showDropdown() {
+        dropdown.style.display = 'block';
+        // Default to How to Play tab
+        howToPlayTab.style.display = '';
+        gameSettingsTab.style.display = 'none';
+        howToPlayTabBtn.style.background = '#D68C1F';
+        howToPlayTabBtn.style.color = '#fff';
+        gameSettingsTabBtn.style.background = '#eee';
+        gameSettingsTabBtn.style.color = '#a0522d';
+      }
+      function hideDropdown() {
+        dropdown.style.display = 'none';
+      }
+      hamburgerMenu.onclick = function(e) {
+        e.stopPropagation();
+        if (dropdown.style.display === 'block') {
+          hideDropdown();
+        } else {
+          showDropdown();
+        }
       };
-      document.getElementById('closeHowToPlay').onclick = function() {
-        document.getElementById('howToPlayModal').style.display = 'none';
+      howToPlayTabBtn.onclick = function() {
+        howToPlayTab.style.display = '';
+        gameSettingsTab.style.display = 'none';
+        this.style.background = '#D68C1F';
+        this.style.color = '#fff';
+        gameSettingsTabBtn.style.background = '#eee';
+        gameSettingsTabBtn.style.color = '#a0522d';
       };
+      gameSettingsTabBtn.onclick = function() {
+        howToPlayTab.style.display = 'none';
+        gameSettingsTab.style.display = '';
+        this.style.background = '#D68C1F';
+        this.style.color = '#fff';
+        howToPlayTabBtn.style.background = '#eee';
+        howToPlayTabBtn.style.color = '#a0522d';
+      };
+      // Hide dropdown when clicking outside
+      document.addEventListener('mousedown', function(e) {
+        if (!dropdown.contains(e.target) && !hamburgerMenu.contains(e.target)) {
+          hideDropdown();
+        }
+      });
+      // Hide dropdown on Escape
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-          document.getElementById('howToPlayModal').style.display = 'none';
+          hideDropdown();
         }
         // Allow Enter to restart game if overlay is visible
         if ((e.key === 'Enter' || e.keyCode === 13) && document.getElementById('gameOverOverlay').style.display === 'flex') {
