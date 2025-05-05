@@ -11,7 +11,6 @@
 // The game starts slow and speeds up every 30 seconds. Fill lines to score points. Drag and drop is also supported for moving pieces.
 //
 // Enjoy!
-
 // Global variables
 let R = 5; // Hexagon radius (distance from center to corner)
 let size = 30; // Hexagon radius in pixels
@@ -39,6 +38,13 @@ let gameOverSound;
 let streakSound;
 let soundVolume = 1.0; // Global sound volume (0.0 to 1.0)
 let allSounds = [];
+let clearedHexes = new Set(); // <-- moved here to ensure early initialization
+let clearAnimFrame = 0;
+const CLEAR_ANIM_DURATION = 12; // frames for pop/glow
+let scoreAnimFrame = 0;
+const SCORE_ANIM_DURATION = 24; // frames (0.4s at 60fps)
+let lastScore = 0;
+let uiFont; // <-- moved here to ensure early initialization
 
 // Drag-and-drop state
 let dragging = false;
@@ -277,6 +283,77 @@ function placePiece() {
   }
 }
 
+// === SUPABASE LEADERBOARD INTEGRATION START ===
+// Add your Supabase project URL and anon key here
+const SUPABASE_URL = 'https://ikfbshpayzrrqzcppfez.supabase.co'; // TODO: Replace with your Supabase URL
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrZmJzaHBheXpycnF6Y3BwZmV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0NzE5NDIsImV4cCI6MjA2MjA0Nzk0Mn0.748o5jqh5Flo5_Hz_o7IqBllbc4olKT3OBU0dU8Bvwg'; // TODO: Replace with your anon key
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Show leaderboard after submitting score
+async function showLeaderboard() {
+  const { data, error } = await supabase
+    .from('leaderboard')
+    .select('username, score')
+    .order('score', { ascending: false })
+    .limit(10);
+  if (error) {
+    // Handle error
+    const overlay = document.getElementById('gameOverOverlay');
+    if (overlay) {
+      overlay.innerHTML += '<div style="color:#c00;">Error loading leaderboard.</div>';
+    }
+    return;
+  }
+  // Render leaderboard (customize as needed)
+  let html = '<h2 style="margin-top:32px;">Leaderboard</h2><ol style="text-align:left; font-size:1.3em;">';
+  for (const row of data) {
+    html += `<li><b>${row.username}</b>: ${row.score}</li>`;
+  }
+  html += '</ol>';
+  // For example, put this in your game over overlay:
+  const overlay = document.getElementById('gameOverOverlay');
+  if (overlay) {
+    overlay.innerHTML += html;
+  }
+}
+
+// === SUPABASE LEADERBOARD INTEGRATION END ===
+
+async function showLeaderboardInGameOver() {
+  const { data, error } = await supabase
+    .from('leaderboard')
+    .select('username, score')
+    .order('score', { ascending: false })
+    .limit(10);
+  const overlay = document.getElementById('gameOverOverlay');
+  if (!overlay) return;
+  // Find the inner div (the popup box)
+  const innerDiv = overlay.querySelector('div');
+  if (!innerDiv) return;
+  // Remove any previous leaderboard
+  let oldBoard = innerDiv.querySelector('.leaderboard-box');
+  if (oldBoard) oldBoard.remove();
+  let html = '<div class="leaderboard-box" style="margin-bottom:24px;">';
+  html += '<h2 style="color:#a0522d;margin-bottom:10px;">Top 10 Leaders</h2>';
+  if (error) {
+    html += '<div style="color:#c00;">Error loading leaderboard.</div>';
+  } else {
+    html += '<ol style="text-align:left; font-size:1.2em; margin:0 auto; display:inline-block;">';
+    for (const row of data) {
+      html += `<li><b>${row.username}</b>: ${row.score}</li>`;
+    }
+    html += '</ol>';
+  }
+  html += '</div>';
+  // Insert leaderboard before the h1 (Game Over)
+  const h1 = innerDiv.querySelector('h1');
+  if (h1) {
+    h1.insertAdjacentHTML('beforebegin', html);
+  } else {
+    innerDiv.insertAdjacentHTML('afterbegin', html);
+  }
+}
+
 function showGameOver() {
   gameOver = true;
   if (gameOverSound && gameOverSound.isLoaded()) {
@@ -290,6 +367,22 @@ function showGameOver() {
     if (overlay) {
       overlay.style.display = 'flex';
       setTimeout(() => overlay.classList.add('show'), 10);
+      // Show leaderboard above Game Over
+      showLeaderboardInGameOver();
+    }
+    // Attach event listeners for Share My Score and My Receipts buttons
+    const shareBtn = document.getElementById('shareScoreBtn');
+    if (shareBtn) {
+      shareBtn.onclick = shareScore;
+    }
+    const addToLeaderboardBtn = document.getElementById('addToLeaderboardBtn');
+    const usernameModal = document.getElementById('usernameModal');
+    if (addToLeaderboardBtn && usernameModal) {
+      addToLeaderboardBtn.onclick = () => {
+        usernameModal.style.display = 'flex';
+        document.getElementById('usernameInput').value = '';
+        document.getElementById('usernameError').textContent = '';
+      };
     }
   }
 }
@@ -313,15 +406,6 @@ function restartGame() {
 }
 
 // === UI POLISH START ===
-// Font setup
-let uiFont;
-let clearedHexes = new Set();
-let clearAnimFrame = 0;
-const CLEAR_ANIM_DURATION = 12; // frames for pop/glow
-let scoreAnimFrame = 0;
-const SCORE_ANIM_DURATION = 24; // frames (0.4s at 60fps)
-let lastScore = 0;
-
 function preload() {
   treeBgImg = loadImage('img/background.png');
   honeyImg = loadImage('img/honey.png');
@@ -668,15 +752,18 @@ function draw() {
 // Handle key presses for piece control
 function keyPressed() {
   if (gameOver) return;
-  if (keyCode === LEFT_ARROW || key === 'a') {
-    movePieceLeft();
-  } else if (keyCode === RIGHT_ARROW || key === 'd') {
-    movePieceRight();
-  } else if ((keyCode === UP_ARROW || key === 'w' || keyCode === 32) && frameCount - lastRotateFrame > 6) {
+  // Allow rotation even while dragging
+  if ((keyCode === UP_ARROW || key === 'w' || keyCode === 32) && frameCount - lastRotateFrame > 6) {
     rotatePiece();
     lastRotateFrame = frameCount;
-  } else if (keyCode === DOWN_ARROW || key === 's') {
-    softDrop = true;
+  } else if (!dragging) {
+    if (keyCode === LEFT_ARROW || key === 'a') {
+      movePieceLeft();
+    } else if (keyCode === RIGHT_ARROW || key === 'd') {
+      movePieceRight();
+    } else if (keyCode === DOWN_ARROW || key === 's') {
+      softDrop = true;
+    }
   }
 }
 
@@ -686,7 +773,7 @@ function keyReleased() {
   }
 }
 
-function mousePressed() {
+function mousePressed(event) {
   if (gameOver) return;
   for (let offset of piece.shape) {
     let absHex = piece.hexPos.add(offset);
@@ -793,10 +880,6 @@ function shareScore() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  const shareBtn = document.getElementById('shareScoreBtn');
-  if (shareBtn) {
-    shareBtn.addEventListener('click', shareScore);
-  }
   const slider = document.getElementById('soundVolumeSlider');
   const label = document.getElementById('soundVolumeLabel');
   if (slider && label) {
@@ -808,9 +891,71 @@ window.addEventListener('DOMContentLoaded', () => {
       setAllSoundVolumes();
     });
   }
+  // === SUPABASE LEADERBOARD INTEGRATION: USERNAME MODAL LOGIC ===
+  const usernameModal = document.getElementById('usernameModal');
+  const usernameInput = document.getElementById('usernameInput');
+  const usernameError = document.getElementById('usernameError');
+  const submitUsernameBtn = document.getElementById('submitUsernameBtn');
+
+  function validateUsername(name) {
+    // Allow 1-5 alphanumeric, no spaces/symbols, uppercase
+    return /^[A-Z0-9]{1,5}$/.test(name);
+  }
+
+  async function submitUsernameAndScore() {
+    const username = usernameInput.value.trim().toUpperCase();
+    if (!validateUsername(username)) {
+      usernameError.textContent = 'Username must be 1-5 letters/numbers.';
+      return;
+    }
+    if (score === 0) {
+      usernameError.textContent = 'Score must be greater than 0 to submit.';
+      return;
+    }
+    // Insert score (no uniqueness check)
+    const { error: insertError } = await supabase
+      .from('leaderboard')
+      .insert([{ username, score }]);
+    if (insertError) {
+      usernameError.textContent = 'Error saving score. Try again.';
+      return;
+    }
+    // Hide modal and show leaderboard
+    usernameModal.style.display = 'none';
+    showLeaderboard();
+  }
+
+  if (submitUsernameBtn) {
+    submitUsernameBtn.addEventListener('click', submitUsernameAndScore);
+  }
+  if (usernameInput) {
+    usernameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitUsernameAndScore();
+    });
+  }
 });
 
 // Utility: check if mouse is over a hex center
 function isMouseOverHex(p, size) {
   return dist(mouseX, mouseY, p.x, p.y) < size * 0.95;
 }
+
+// Listen for right-click (contextmenu) to rotate while dragging
+window.addEventListener('contextmenu', function(e) {
+  if (dragging) {
+    e.preventDefault();
+    rotatePiece();
+    lastRotateFrame = frameCount;
+    return false;
+  }
+}, false);
+
+// Touch gesture: two-finger tap to rotate while dragging
+window.addEventListener('touchstart', function(e) {
+  if (dragging && e.touches.length === 2) {
+    rotatePiece();
+    lastRotateFrame = frameCount;
+    // Optionally, prevent zoom
+    e.preventDefault();
+  }
+}, { passive: false });
