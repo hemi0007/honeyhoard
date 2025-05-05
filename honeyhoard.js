@@ -290,32 +290,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Show leaderboard after submitting score
-async function showLeaderboard() {
-  const { data, error } = await supabase
-    .from('leaderboard')
-    .select('username, score')
-    .order('score', { ascending: false })
-    .limit(10);
-  if (error) {
-    // Handle error
-    const overlay = document.getElementById('gameOverOverlay');
-    if (overlay) {
-      overlay.innerHTML += '<div style="color:#c00;">Error loading leaderboard.</div>';
-    }
-    return;
-  }
-  // Render leaderboard (customize as needed)
-  let html = '<h2 style="margin-top:32px;">Leaderboard</h2><ol style="text-align:left; font-size:1.3em;">';
-  for (const row of data) {
-    html += `<li><b>${row.username}</b>: ${row.score}</li>`;
-  }
-  html += '</ol>';
-  // For example, put this in your game over overlay:
-  const overlay = document.getElementById('gameOverOverlay');
-  if (overlay) {
-    overlay.innerHTML += html;
-  }
-}
+// (Removed to prevent leaderboard from appearing outside the popup)
+// async function showLeaderboard() {
+//   ...
+// }
 
 // === SUPABASE LEADERBOARD INTEGRATION END ===
 
@@ -922,7 +900,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     // Hide modal and show leaderboard
     usernameModal.style.display = 'none';
-    showLeaderboard();
   }
 
   if (submitUsernameBtn) {
