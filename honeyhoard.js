@@ -907,14 +907,14 @@ window.addEventListener('DOMContentLoaded', () => {
   const submitUsernameBtn = document.getElementById('submitUsernameBtn');
 
   function validateUsername(name) {
-    // Allow 1-10 alphanumeric, no spaces/symbols, uppercase
-    return /^[A-Z0-9]{1,10}$/.test(name);
+    // Allow 1-25 alphanumeric, no spaces/symbols, uppercase
+    return /^[A-Z0-9]{1,25}$/.test(name);
   }
 
   async function submitUsernameAndScore() {
     const username = usernameInput.value.trim().toUpperCase();
     if (!validateUsername(username)) {
-      usernameError.textContent = 'Username must be 1-10 letters/numbers.';
+      usernameError.textContent = 'Username must be 1-25 letters/numbers.';
       return;
     }
     if (score === 0) {
