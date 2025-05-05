@@ -460,6 +460,10 @@ function removeLines() {
 function setup() {
   let canvas = createCanvas(windowWidth, windowHeight);
   canvas.style('display', 'block');
+  // Make canvas focusable for keyboard events
+  if (canvas.elt) {
+    canvas.elt.setAttribute('tabindex', '0');
+  }
   pixelDensity(window.devicePixelRatio); // Handle high-DPI displays
   origin = createVector(width / 2, height / 2); // Center the grid
 
@@ -783,6 +787,10 @@ function mousePressed() {
       draggedFarEnough = false;
       let pieceOriginPx = hexToPixel(piece.hexPos);
       dragOffset = createVector(mouseX - pieceOriginPx.x, mouseY - pieceOriginPx.y);
+      // Ensure canvas is focused for keyboard events
+      if (window._renderer && window._renderer.canvas) {
+        window._renderer.canvas.focus();
+      }
       return;
     }
   }
@@ -790,6 +798,10 @@ function mousePressed() {
 
 function mouseDragged() {
   if (!dragging || gameOver) return;
+  // Ensure canvas is focused for keyboard events
+  if (window._renderer && window._renderer.canvas) {
+    window._renderer.canvas.focus();
+  }
   let px = createVector(mouseX - dragOffset.x, mouseY - dragOffset.y);
   let hex = pixelToHex(px);
   if (canPlace(hex, piece.shape)) {
@@ -895,14 +907,14 @@ window.addEventListener('DOMContentLoaded', () => {
   const submitUsernameBtn = document.getElementById('submitUsernameBtn');
 
   function validateUsername(name) {
-    // Allow 1-5 alphanumeric, no spaces/symbols, uppercase
-    return /^[A-Z0-9]{1,5}$/.test(name);
+    // Allow 1-10 alphanumeric, no spaces/symbols, uppercase
+    return /^[A-Z0-9]{1,10}$/.test(name);
   }
 
   async function submitUsernameAndScore() {
     const username = usernameInput.value.trim().toUpperCase();
     if (!validateUsername(username)) {
-      usernameError.textContent = 'Username must be 1-5 letters/numbers.';
+      usernameError.textContent = 'Username must be 1-10 letters/numbers.';
       return;
     }
     if (score === 0) {
