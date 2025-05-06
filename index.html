@@ -191,6 +191,11 @@
         if (typeof startGame === 'function') startGame();
         document.getElementById('landingPage').style.display = 'none';
       };
+      document.getElementById('startGameBtn').addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        if (typeof startGame === 'function') startGame();
+        document.getElementById('landingPage').style.display = 'none';
+      }, { passive: false });
 
       // Hamburger dropdown logic
       const hamburgerMenu = document.getElementById('hamburgerMenu');
