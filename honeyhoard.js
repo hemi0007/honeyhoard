@@ -325,11 +325,14 @@ async function showLeaderboardInGameOver() {
   }
 }
 
+let gameOverSoundPlayed = false;
+
 function showGameOver() {
   gameOver = true;
-  if (gameOverSound && gameOverSound.isLoaded()) {
+  if (gameOverSound && gameOverSound.isLoaded() && !gameOverSoundPlayed) {
     gameOverSound.setVolume(soundVolume);
     gameOverSound.play();
+    gameOverSoundPlayed = true;
   }
   if (typeof document !== 'undefined') {
     const scoreElem = document.getElementById('finalScore');
@@ -364,6 +367,10 @@ function restartGame() {
   fallInterval = 150;
   lastFall = 0;
   gameOver = false;
+  gameOverSoundPlayed = false;
+  if (gameOverSound && gameOverSound.isLoaded()) {
+    gameOverSound.stop();
+  }
   loop();
   generatePiece();
   lastSpeedupFrame = frameCount;
@@ -636,19 +643,12 @@ function draw() {
       text(scoreText, width / 2, btnY + btnH / 2);
     }
 
-    // Draw bearhoney.png at bottom right, fixed
-    if (bearHoneyImg) {
-      let marginX, marginY, bearW, bearH;
-      if (windowWidth < 700) { // Mobile adjustments: move bear further in
-        marginX = 60; // positive margin to move in
-        marginY = 10;
-        bearW = Math.min(width, height) * 0.22 * 0.9;
-      } else {
-        marginX = 350;
-        marginY = 80;
-        bearW = Math.min(width, height) * 0.22 * 1.3 * 1.2;
-      }
-      bearH = bearW * (bearHoneyImg.height / bearHoneyImg.width);
+    // Only show bearhoney image if not in mobile view
+    if (bearHoneyImg && windowWidth >= 700) {
+      let marginX = 350;
+      let marginY = 80;
+      let bearW = Math.min(width, height) * 0.22 * 1.3 * 1.2;
+      let bearH = bearW * (bearHoneyImg.height / bearHoneyImg.width);
       image(
         bearHoneyImg,
         width - bearW - marginX,
