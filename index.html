@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Honey Hoard</title>
     <style>
         body {
@@ -14,7 +14,7 @@
           background-position: center;
         }
         canvas {
-            background: url('/img/background.png') no-repeat 0 0 fixed;      /* rounded corners */
+            position: fixed; /* Keeps the canvas anchored in place */
             top: 0;
             left: 0;
             width: 100vw; /* Full viewport width */
@@ -22,7 +22,8 @@
             background: transparent; /* Transparent canvas background */
             background-size: cover;
             background-position: center;
-            display: block; /* Removes extra spacing */
+            display: block; /* Eliminates extra spacing */
+            touch-action: none; /* Disables default touch actions */
         }
         #gameOverOverlay, #hamburgerMenu, #howToPlayModal {
             z-index: 20 !important;
@@ -268,6 +269,18 @@
           usernameModal.style.display = 'none';
         }
       });
+
+      function touchStarted() {
+        return false;
+      }
+
+      function touchMoved() {
+        return false;
+      }
+
+      function touchEnded() {
+        return false;
+      }
     </script>
 </body>
 </html>
