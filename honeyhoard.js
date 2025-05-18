@@ -483,6 +483,12 @@ function setup() {
 
   // Do not start the game until user clicks Start
   noLoop();
+
+  setTimeout(() => {
+    resizeCanvas(windowWidth, windowHeight);
+    pixelDensity(window.devicePixelRatio);
+    origin = createVector(width / 2, height / 2);
+  }, 100);
 }
 
 // Draw function: render the game
